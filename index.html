@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2E8DE">
+  <meta name="description" content="LLAJTAVOY, delivery conectado para Cochabamba. Cliente, restaurante, repartidor y operaciones en una aplicación local.">
+  <title>LLAJTAVOY · Delivery conectado para Cochabamba</title>
+  <link rel="icon" href="assets/images/brand.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/cliente.css">
+  <link rel="stylesheet" href="css/middleware.css">
+  <link rel="stylesheet" media="print" onload="this.media='all'; window.LlajtaVoy?.EventBus.emit('fonts:ready')" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Material+Symbols+Rounded:wght@400&display=swap">
+  <link rel="stylesheet" media="print" onload="this.media='all'; window.LlajtaVoy?.EventBus.emit('library:ready')" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir al contenido</a>
+  <aside class="sidebar">
+    <button class="brand" data-action="navigate" data-view="home" aria-label="LLAJTAVOY, inicio"><img src="assets/images/brand.svg" width="40" height="40" alt=""><span>LLAJTA<span class="brand-accent">VOY</span><small>DELIVERY CONECTADO</small></span></button>
+    <div class="sidebar-city"><span class="status-dot"></span>Cochabamba, Bolivia</div>
+    <span class="nav-label">TU ESPACIO</span>
+    <nav id="role-nav" aria-label="Selector permanente de vistas"></nav>
+    <div class="sidebar-footer"><div class="city-art"><svg viewBox="0 0 180 65" aria-hidden="true"><path d="m0 60 35-28 25 15 26-34 24 26 22-14 48 35" fill="#DBBBA5"/><path d="M57 65V40h18v25m10 0V29h18v36m9 0V45h17v20" fill="#C48B82"/></svg></div><strong>La Llajta se mueve.</strong><small>Y nosotros, contigo.</small><div id="sidebar-status" class="connection-status"></div></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div><span class="breadcrumb">LLAJTAVOY <span>/</span> <span id="breadcrumb-view">Inicio</span></span><p>Delivery conectado para Cochabamba</p></div><div class="topbar-actions"><span class="service-pill" id="service-status"></span><button class="notification-button" data-action="open-notifications" aria-label="Abrir notificaciones"><span id="header-bell"></span><b id="notification-count">0</b></button><div class="avatar small" id="actor-avatar">A</div></div></header>
+    <main id="main" tabindex="-1"><div class="page-heading"><div><span class="eyebrow" id="actor-label">UNA CIUDAD, MUCHAS CONEXIONES</span><h1 id="page-title">Vista general</h1><p id="page-subtitle">Toda la ciudad. Un mismo recorrido.</p></div><div class="date-label" id="date-label"></div></div><div id="storage-warning" role="status" hidden></div><div id="view"><section class="panel"><h2>LLAJTAVOY</h2><p>Delivery conectado para Cochabamba</p><p>Iniciando el catálogo local…</p></section></div></main>
+    <footer class="app-footer"><span>LLAJTAVOY · Hecho para Cochabamba</span><span>Un pedido. Todos conectados.</span></footer>
+  </div>
+  <nav id="mobile-nav" class="mobile-nav" aria-label="Navegación móvil"></nav>
+  <dialog id="modal" aria-label="Información y acciones"></dialog>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <noscript><p>Activa JavaScript en tu navegador para utilizar las vistas, pedidos y seguimiento.</p></noscript>
+  <script src="js/core/namespace.js"></script>
+  <script src="js/seed-data.js"></script>
+  <script src="js/core/database.js"></script>
+  <script src="js/core/state-machine.js"></script>
+  <script src="js/core/event-types.js"></script>
+  <script src="js/core/event-store.js"></script>
+  <script src="js/core/event-broker.js"></script>
+  <script src="js/core/api-gateway.js"></script>
+  <script src="js/maps/cochabamba.js"></script>
+  <script src="js/maps/routes.js"></script>
+  <script src="js/services/catalog.service.js"></script>
+  <script src="js/services/payment.service.js"></script>
+  <script src="js/services/order.service.js"></script>
+  <script src="js/services/restaurant.service.js"></script>
+  <script src="js/services/dispatch.service.js"></script>
+  <script src="js/services/driver.service.js"></script>
+  <script src="js/services/tracking.service.js"></script>
+  <script src="js/services/notification.service.js"></script>
+  <script src="js/services/analytics.service.js"></script>
+  <script src="js/services/audit.service.js"></script>
+  <script src="js/ui/icons.js"></script>
+  <script src="js/ui/toast.js"></script>
+  <script src="js/ui/modal.js"></script>
+  <script src="js/ui/timeline.js"></script>
+  <script src="js/ui/charts.js"></script>
+  <script src="js/ui/components.js"></script>
+  <script src="js/maps/map-manager.js"></script>
+  <script src="js/views/home.view.js"></script>
+  <script src="js/views/cliente.view.js"></script>
+  <script src="js/views/restaurante.view.js"></script>
+  <script src="js/views/repartidor.view.js"></script>
+  <script src="js/views/operaciones.view.js"></script>
+  <script src="js/views/middleware.view.js"></script>
+  <script src="js/views/arquitectura.view.js"></script>
+  <script src="js/core/router.js"></script>
+  <script src="js/app.js"></script>
+  <!-- Los recursos externos son opcionales y nunca bloquean el arranque. -->
+  <script async src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="window.LlajtaVoy.EventBus.emit('library:ready')"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" onload="window.LlajtaVoy.EventBus.emit('library:ready')"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/@turf/turf@7.2.0/turf.min.js"></script>
+</body>
+</html>

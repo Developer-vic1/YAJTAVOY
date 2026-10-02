@@ -1,0 +1,1 @@
+(function (L) { L.services.AuditService = { consume(event) { const DB = L.core.DatabaseService; if (!DB.state.audit.some(a => a.eventId===event.eventId)) DB.change(s => s.audit.push({eventId:event.eventId,correlationId:event.correlationId,routingKey:event.routingKey,producer:event.producer,processedAt:L.now()})); } }; })(window.LlajtaVoy);

@@ -1,0 +1,7 @@
+(function (L) {
+  const DB = L.core.DatabaseService, SM = L.core.StateMachine;
+  L.services.AnalyticsService = {
+    consume(event) { if (!DB.state.metrics.some(m => m.eventId === event.eventId)) DB.change(s => s.metrics.push({ eventId: event.eventId, key: event.routingKey, timestamp: event.timestamp })); },
+    summary() { const orders = DB.getOrders(), delivered = orders.filter(o => o.status === 'DELIVERED'); const today = new Date().toLocaleDateString('es-BO'); const times = delivered.map(o => (Date.parse(o.deliveredAt)-Date.parse(o.createdAt))/60000); return { today: orders.filter(o => new Date(o.createdAt).toLocaleDateString('es-BO') === today).length, active: orders.filter(o => !SM.terminal.includes(o.status)).length, preparing: orders.filter(o => o.status === 'PREPARING').length, searching: orders.filter(o => o.status === 'DRIVER_SEARCHING').length, onRoute: orders.filter(o => ['ON_ROUTE','ARRIVING'].includes(o.status)).length, delivered: delivered.length, cancelled: orders.filter(o => ['CANCELLED','RESTAURANT_REJECTED','DELIVERY_FAILED'].includes(o.status)).length, available: DB.getDrivers().filter(d => d.status === 'AVAILABLE').length, sales: DB.state.payments.filter(p => p.status === 'APPROVED').reduce((s,p) => s+p.amount,0), average: times.length ? times.reduce((a,b) => a+b,0)/times.length : null, restaurants: DB.getRestaurants().filter(r => r.open).length }; }
+  };
+})(window.LlajtaVoy);

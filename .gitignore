@@ -1,0 +1,9 @@
+# Archivos personales del editor y del sistema
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+*.log
+# Respaldos locales descargados; nunca publicar datos de una sesión
+llajtavoy-respaldo*.json
+comprobante-CB-*.txt

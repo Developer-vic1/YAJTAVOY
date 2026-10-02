@@ -1,0 +1,4 @@
+(function (L) {
+  let instances = [];
+  L.ui.charts = { destroy() { instances.forEach(c => c.destroy()); instances = []; }, render(target,labels,values) { const el = document.getElementById(target); if (!el) return; if (window.Chart) { const canvas = document.createElement('canvas'); el.replaceChildren(canvas); instances.push(new Chart(canvas,{ type: 'bar', data: { labels, datasets: [{ data: values, backgroundColor: '#C48B82', borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } })); } else { const max = Math.max(1,...values); el.innerHTML = '<div class="bar-chart">'+labels.map((label,i) => '<div class="bar-row"><span>'+L.escape(label)+'</span><div><i style="width:'+values[i]/max*100+'%"></i></div><strong>'+values[i]+'</strong></div>').join('')+'</div>'; } } };
+})(window.LlajtaVoy);
