@@ -9,14 +9,18 @@
     if (config.onSelect) { el.onclick = event => { const svg = el.querySelector('svg'), rect = svg.getBoundingClientRect(); const scale = Math.max(rect.width/800,rect.height/420); const x = (event.clientX-rect.left+(800*scale-rect.width)/2)/scale; const y = (event.clientY-rect.top+(420*scale-rect.height)/2)/scale; config.onSelect(C.bounds.north-y/420*(C.bounds.north-C.bounds.south),C.bounds.west+x/800*(C.bounds.east-C.bounds.west)); }; el.classList.add('selectable'); }
   }
   L.maps.MapManager = {
+    canUseTiles() { return ['http:','https:'].includes(window.location?.protocol); },
     destroy() { for (const entry of maps.values()) { entry.map?.remove(); clearTimeout(entry.timer); } maps.clear(); },
     mount(id,config) {
       const el = document.getElementById(id); if (!el) return; const prior = maps.get(id); prior?.map?.remove(); clearTimeout(prior?.timer); const entry = { el,config,map:null,driverMarkers: new Map() }; maps.set(id,entry);
       schematic(el,config);
-      if (!window.L || L.core.DatabaseService.state.mapMode === 'offline') return;
+      // Los archivos file:// no envían el Referer web requerido por OSM.
+      // Algunos rechazos llegan como imágenes válidas de "Acceso bloqueado",
+      // por lo que Leaflet emite tileload y no puede activar tileerror.
+      if (!this.canUseTiles() || !window.L || L.core.DatabaseService.state.mapMode === 'offline') return;
       try { el.onclick = null; el.innerHTML = ''; const map = entry.map = window.L.map(el,{ scrollWheelZoom: false, zoomControl: true }).setView(config.center || C.center,13);
         let errors = 0; let tilesLoaded = false; const fallback = () => { if (!maps.has(id) || entry.map !== map) return; map.remove(); entry.map = null; schematic(el,config); };
-        const tiles = window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>', maxZoom: 18 }); tiles.on('tileerror',() => { if (++errors >= 3 && !tilesLoaded) fallback(); }); tiles.on('tileload',() => { tilesLoaded = true; clearTimeout(entry.timer); }); tiles.addTo(map); entry.timer = setTimeout(() => { if (!tilesLoaded) fallback(); },6000);
+        const tiles = window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>', maxZoom: 18 }); tiles.on('tileerror',() => { if (++errors >= 3) fallback(); }); tiles.on('tileload',() => { tilesLoaded = true; clearTimeout(entry.timer); }); tiles.addTo(map); entry.timer = setTimeout(() => { if (!tilesLoaded) fallback(); },6000);
         for (const m of config.markers) { const marker = window.L.marker([m.lat,m.lng],{ icon: window.L.divIcon({ className: 'pin '+(m.driver?'driver':m.customer?'customer':''), html: L.ui.icon(m.driver?'two_wheeler':m.customer?'person':'restaurant'), iconSize: [32,32], iconAnchor: [16,16] }) }).addTo(map).bindTooltip(esc(m.name)); if (m.driver) entry.driverMarkers.set(m.id,marker); }
         if (config.route?.length) { const line = window.L.polyline(config.route,{ color: '#916052', weight: 5, dashArray: '8 8' }).addTo(map); map.fitBounds(line.getBounds().pad(.3)); }
         if (config.onSelect) map.on('click',e => config.onSelect(e.latlng.lat,e.latlng.lng));

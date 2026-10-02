@@ -21,3 +21,9 @@ Los casos funcionales usan datos aislados. La carpeta no contiene pedidos de pru
 ## Revisión posterior de navegación
 
 Se reprodujo con dependencias instrumentadas una divergencia entre actor interno y pantalla al cambiar el hash mientras un campo tenía foco. Se corrigió: la navegación explícita fuerza la actualización y retira el foco; si hay un modal abierto, se cierra antes del cambio de actor. Las actualizaciones de fondo siguen respetando el formulario en edición. `navigation.spec.js` comprueba cinco casos de regresión sin navegador real. La validación visual por file:// sigue pendiente por el bloqueo indicado arriba.
+
+## Corrección del mapa a partir de captura del usuario
+
+La captura del mapa de Inicio mostró imágenes de acceso bloqueado de OpenStreetMap en lugar de la cartografía. El gestor ahora utiliza el SVG integrado siempre que el protocolo no sea HTTP/HTTPS, incluido file://, aun si Leaflet ya cargó o la preferencia persistida es auto. El respaldo sigue mostrando sectores, restaurantes, repartidores y recorrido, y admite selección de ubicación y actualización de posiciones.
+
+`maps.spec.js` verifica nueve casos con dependencias instrumentadas: ausencia de solicitudes de tiles en file://, marcadores iniciales, ruta, selección, actualización del repartidor, opción conectada en HTTPS, respaldo tras errores parciales, preferencia offline y funcionamiento sin Leaflet. Los errores de carga de tres tiles activan el respaldo aunque otro haya cargado correctamente. Se conserva la distinción entre estas pruebas y una captura de la página actualizada en un navegador real.
