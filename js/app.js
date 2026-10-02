@@ -6,10 +6,10 @@
   const app = L.app = {
     context() { const current = L.core.Router.current; return current==='cliente'?{ actor:'client',customerId:'c1' }:current==='restaurante'?{ actor:'restaurant',restaurantId:L.views.restaurante.id }:current==='repartidor'?{ actor:'driver',driverId:L.views.repartidor.id }:{ actor:'admin' }; },
     async api(method,url,data,context) { return (await G.request(method,url,data,context || this.context())).data; },
-    render() {
+    render(force = false) {
       clearTimeout(renderTimer); renderTimer = null;
       if (document.getElementById('modal').open) { pending = true; return; }
-      const focus = document.activeElement; if (focus && ['INPUT','TEXTAREA','SELECT'].includes(focus.tagName) && document.getElementById('view').contains(focus)) { pending = true; return; }
+      const focus = document.activeElement; if (focus && ['INPUT','TEXTAREA','SELECT'].includes(focus.tagName) && document.getElementById('view').contains(focus)) { if (!force) { pending = true; return; } focus.blur(); }
       clearTimeout(renderTimer); pending = false; L.maps.MapManager.destroy(); L.ui.charts.destroy(); const current = L.core.Router.current, view = L.views[current];
       document.getElementById('page-title').textContent = view.title; document.getElementById('page-subtitle').textContent = view.subtitle; document.getElementById('breadcrumb-view').textContent = current==='home'?'Inicio':view.title;
       const actor = this.context().actor; document.getElementById('actor-label').textContent = ({ client:'TU ESPACIO · CLIENTE', restaurant:'TU ESPACIO · RESTAURANTE', driver:'TU ESPACIO · REPARTIDOR', admin:current==='home'?'UNA CIUDAD, MUCHAS CONEXIONES':'TU ESPACIO · ADMINISTRADOR' })[actor];

@@ -17,3 +17,7 @@ El navegador integrado de Codex rechazó la navegación directa a `file://`: su 
 **Pendientes de comprobar en un navegador externo:** doble clic real sobre index.html, interacción visual completa entre vistas, mapas/tiles y Material Symbols con CDN, consola del navegador, geolocalización y almacenamiento real bajo file://, layout de escritorio/tablet/móvil a 320 px. El CSS y los respaldos están implementados, pero no se afirma una validación visual que no se realizó.
 
 Los casos funcionales usan datos aislados. La carpeta no contiene pedidos de prueba persistidos para el usuario: inicia con su catálogo y repartidores, y sin pedidos operativos inventados.
+
+## Revisión posterior de navegación
+
+Se reprodujo con dependencias instrumentadas una divergencia entre actor interno y pantalla al cambiar el hash mientras un campo tenía foco. Se corrigió: la navegación explícita fuerza la actualización y retira el foco; si hay un modal abierto, se cierra antes del cambio de actor. Las actualizaciones de fondo siguen respetando el formulario en edición. `navigation.spec.js` comprueba cinco casos de regresión sin navegador real. La validación visual por file:// sigue pendiente por el bloqueo indicado arriba.
