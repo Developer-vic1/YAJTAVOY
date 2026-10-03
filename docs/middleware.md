@@ -1,5 +1,7 @@
 # Gateway y broker
 
+Documento para desarrolladores. Estos componentes operan internamente; la aplicación pública no muestra la vista Middleware, colas, JSON de eventos ni controles de fallos. Las verificaciones se ejecutan con `node tests/run.cjs`; consulta [desarrollo.md](desarrollo.md).
+
 ApiGateway resuelve rutas, identifica el servicio, controla la cuota de 60 requests por minuto y por actor e identidad, valida permiso y propiedad, registra `requestId`, método, endpoint, servicio, status, latencia, actor y hora. Errores conocidos conservan 403, 404, 409, 422, 429 o 503; errores inesperados quedan como 500. Los registros son locales.
 
 La ráfaga usa GET `/api/admin/probe` en el grupo `demo-burst`; POST `/api/admin/burst` informa las 60 respuestas permitidas y 5 bloqueadas. Las altas no comparten esa cuota. La restauración de servicios y DLQ usan `recovery`; reset conserva el permiso administrativo y la auditoría pero queda fuera del bloqueo por cuota. Los registros incluyen grupo, clave, límite, uso y tiempo de reintento. Primero se valida el rol, después se aplica la cuota correspondiente.

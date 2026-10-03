@@ -16,6 +16,13 @@
     L.core.Router.current='restaurante';for(const tab of ['Pedidos','Historial','Menú','Estadísticas']){L.views.restaurante.tab=tab;const html=L.views.restaurante.render();check('Restaurante '+tab+' conserva ámbito',!html.includes('Establecimiento ajeno QA') && !html.includes('NaN'));}
     L.views.restaurante.id='r2';L.views.restaurante.tab='Menú';check('Cambiar establecimiento oculta seguimiento del anterior',!L.views.restaurante.follow().includes(o.id));
     L.core.Router.current='operaciones';L.views.operaciones.selectedOrder=o.id;check('Operaciones supervisa sin controles de repartidor',L.views.operaciones.render().includes('tracking-map') && !L.views.operaciones.render().includes('data-action="start-route"'));
+    const publicOnly=html=>!(/Middleware|Arquitectura|correlationId|correlation=|Request ID|ApiGateway|OrderService|PaymentService|ACK|NACK|DLQ|data-action="scenario"|<pre>/.test(html));
+    for(const tab of ['Resumen','Pedidos','Restaurantes','Repartidores','Incidentes','Pagos']){L.views.operaciones.tab=tab;const html=L.views.operaciones.render();check('Administración '+tab+' presenta funciones y lenguaje público',html.length>200 && publicOnly(html) && !html.includes('undefined'));}
+    L.core.Router.current='home';check('Inicio no expone pedidos ni clientes internos',!L.views.home.render().includes('Nombre ajeno QA') && !L.views.home.render().includes('RENDER-QA'));
+    L.core.Router.current='roles';const roles=L.views.roles.render();check('Roles ofrece las cinco ventanas funcionales',(roles.match(/data-action="open-role"/g)||[]).length===5 && publicOnly(roles));
+    check('Los errores de servicio se expresan sin nombres de componentes',!L.ui.userError({status:503,message:'PaymentService no disponible'}).includes('Service'));
+    check('Los estados de pago tienen etiquetas comprensibles',L.ui.badge('APPROVED').includes('Aprobado') && L.ui.badge('REJECTED').includes('Rechazado') && !L.ui.badge('APPROVED').includes('APPROVED'));
+    L.core.Router.current='cliente';L.views.cliente.tab='Pedido';o.correlationId='INTERNO-NO-VISIBLE';check('El detalle del cliente oculta correlación técnica',!L.views.cliente.render().includes('INTERNO-NO-VISIBLE'));
     DB.reset();return results;
   };
 })(window.LlajtaVoy);

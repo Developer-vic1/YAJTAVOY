@@ -1,0 +1,6 @@
+(function(L){
+  const E=L.escape,B=L.ui.button;
+  L.views.roles={title:'Elige tu espacio',subtitle:'Un acceso para cada función, sin iniciar sesión.',
+    render(){const A=L.core.Access,current=A.current;return '<section class="panel access-intro"><span class="eyebrow">ROLES</span><h2>¿Desde dónde quieres participar?</h2><p>Elige el espacio que necesitas. Cada uno reúne sus propias tareas y opciones.</p><small>Estás recorriendo una demostración local. Puedes cambiar de rol sin contraseña.</small>'+(current?'<div class="access-current"><span>'+L.ui.icon(A.roles[current.role].icon)+'Espacio seleccionado: <strong>'+E(A.profile())+'</strong></span>'+B('navigate','Volver a mi espacio',{view:A.roles[current.role].view},'arrow_forward')+'</div>':'')+'</section><div class="role-access-grid">'+Object.entries(A.roles).map(([key,r])=>'<article class="access-card '+(current?.role===key?'selected':'')+'"><div class="access-symbol">'+L.ui.icon(r.icon)+'</div><h2>'+r.title+'</h2><p>'+r.description+'</p><ul>'+r.tasks.map(t=>'<li>'+E(t)+'</li>').join('')+'</ul>'+B('open-role','Entrar como '+r.title,{role:key},'arrow_forward','primary')+'</article>').join('')+'</div>';},mount(){}
+  };
+})(window.LlajtaVoy);

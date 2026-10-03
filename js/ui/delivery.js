@@ -4,12 +4,12 @@
     cliente:['shopping_cart','Tu pedido, de la cocina a tu puerta','Explora el menú, elige tu dirección, paga y sigue tus propios pedidos.','Tus pedidos · Tus direcciones · Tus comprobantes'],
     restaurante:['restaurant','Tu cocina y tus pedidos','Acepta o rechaza pedidos, prepara la comida y entrégala al repartidor. Administra el menú de tu establecimiento.','Establecimiento seleccionado · Pedidos asignados'],
     repartidor:['two_wheeler','Tu siguiente entrega','Conéctate, acepta una oferta, llega a la cocina, recoge el pedido y confirma la entrega al llegar.','Repartidor seleccionado · Entregas asignadas'],
-    operaciones:['monitoring','Toda la operación, bajo supervisión','Supervisa entregas, gestiona altas e incidentes y revisa las acciones administrativas.','Administrador de demostración · Acciones auditadas'],
-    middleware:['hub','Cada mensaje tiene un recorrido','Inspecciona solicitudes, eventos, ACK, reintentos y mensajes pendientes de recuperación.','Vista técnica del administrador · Gateway y broker locales'],
+    operaciones:['monitoring','Toda la operación, bajo supervisión','Supervisa entregas, gestiona altas e incidentes y revisa las acciones administrativas.','Pedidos, equipo y atención de incidentes'],
+    middleware:['hub','Cada mensaje tiene un recorrido','','Vista técnica del administrador · Gateway y broker locales'],
     arquitectura:['account_tree','Entiende cómo se conecta el sistema','Explora los componentes, actores y límites de esta demostración ejecutada en el navegador.','Vista técnica del administrador · Diseño y contratos'],
-    pagos:['payments','Pagos y sus notificaciones','El proveedor local procesa automáticamente las transacciones y publica su resultado. Revisa estados y referencias.','Proveedor local · Transacciones propias · Sin datos de dirección']
+    pagos:['payments','Pagos y sus notificaciones','El proveedor local procesa automáticamente las transacciones y publica su resultado. Revisa estados y comprobantes.','Cobros, estados y reembolsos']
   };
-  L.ui.roleIntro=view=>{const r=roles[view];return r?'<section class="role-intro role-'+view+'"><div class="role-emblem" aria-hidden="true">'+I(r[0])+'</div><div><strong>'+r[1]+'</strong><p>'+r[2]+'</p><small>'+r[3]+' · Selector de actores para demostración</small></div></section>':'';};
+  L.ui.roleIntro=view=>{const r=roles[view];return r?'<section class="role-intro role-'+view+'"><div class="role-emblem" aria-hidden="true">'+I(r[0])+'</div><div><strong>'+r[1]+'</strong><p>'+r[2]+'</p><small>'+r[3]+' · Tu espacio de trabajo</small></div></section>':'';};
   L.ui.deliveryStage=o=>{
     const status=o.status,terminal=L.core.StateMachine.terminal.includes(status);
     const phase=status==='DELIVERED'?4:['ON_ROUTE','ARRIVING'].includes(status)?3:['DRIVER_ASSIGNED','PICKED_UP'].includes(status)?2:['PREPARING','READY_FOR_PICKUP','DRIVER_SEARCHING'].includes(status)?1:0;

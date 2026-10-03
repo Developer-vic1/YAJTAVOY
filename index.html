@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="css/cliente.css">
   <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="css/maps.css">
-  <link rel="stylesheet" href="css/middleware.css">
+  <link rel="stylesheet" href="css/access.css">
   <link rel="stylesheet" media="print" onload="this.media='all'; window.LlajtaVoy?.EventBus.emit('fonts:ready')" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Material+Symbols+Rounded:wght@400&display=swap">
 </head>
 <body>
@@ -25,12 +25,13 @@
     <button class="brand" data-action="navigate" data-view="home" aria-label="LLAJTAVOY, inicio"><img src="assets/images/brand.svg" width="40" height="40" alt=""><span>LLAJTA<span class="brand-accent">VOY</span><small>DELIVERY CONECTADO</small></span></button>
     <div class="sidebar-city"><span class="status-dot"></span>Cochabamba, Bolivia</div>
     <span class="nav-label">TU ESPACIO</span>
-    <nav id="role-nav" aria-label="Selector permanente de vistas"></nav>
+    <div id="workspace-profile" class="workspace-profile"></div>
+    <nav id="role-nav" aria-label="Opciones de tu espacio"></nav>
     <div class="sidebar-footer"><div class="city-art"><svg viewBox="0 0 180 65" aria-hidden="true"><path d="m0 60 35-28 25 15 26-34 24 26 22-14 48 35" fill="#DBBBA5"/><path d="M57 65V40h18v25m10 0V29h18v36m9 0V45h17v20" fill="#C48B82"/></svg></div><strong>La Llajta se mueve.</strong><small>Y nosotros, contigo.</small><div id="sidebar-status" class="connection-status"></div></div>
   </aside>
   <div class="workspace">
-    <header class="topbar"><div><span class="breadcrumb">LLAJTAVOY <span>/</span> <span id="breadcrumb-view">Inicio</span></span><p>Delivery conectado para Cochabamba</p></div><div class="topbar-actions"><span class="service-pill" id="service-status"></span><button class="notification-button" data-action="open-notifications" aria-label="Abrir notificaciones"><span id="header-bell"></span><b id="notification-count">0</b></button><div class="avatar small" id="actor-avatar">A</div></div></header>
-    <main id="main" tabindex="-1"><div class="page-heading"><div><span class="eyebrow" id="actor-label">UNA CIUDAD, MUCHAS CONEXIONES</span><h1 id="page-title">Vista general</h1><p id="page-subtitle">Toda la ciudad. Un mismo recorrido.</p></div><div class="date-label" id="date-label"></div></div><div id="storage-warning" role="status" hidden></div><div id="view"><section class="panel"><h2>LLAJTAVOY</h2><p>Delivery conectado para Cochabamba</p><p>Iniciando el catálogo local…</p></section></div></main>
+    <header class="topbar"><div><span class="breadcrumb">LLAJTAVOY <span>/</span> <span id="breadcrumb-view">Inicio</span></span><p>Delivery conectado para Cochabamba</p></div><div class="topbar-actions"><span class="service-pill" id="service-status"></span><button class="notification-button" data-action="open-notifications" aria-label="Abrir notificaciones" hidden><span id="header-bell"></span><b id="notification-count">0</b></button><div class="avatar small" id="actor-avatar">LV</div></div></header>
+    <main id="main" tabindex="-1"><div class="page-heading"><div><span class="eyebrow" id="actor-label">UNA CIUDAD, MUCHAS CONEXIONES</span><h1 id="page-title">Bienvenido a LLAJTAVOY</h1><p id="page-subtitle">Tu comida favorita, más cerca.</p></div><div class="date-label" id="date-label"></div></div><div id="storage-warning" role="status" hidden></div><div id="view"><section class="panel"><h2>LLAJTAVOY</h2><p>Delivery conectado para Cochabamba</p><p>Iniciando el catálogo local…</p></section></div></main>
     <footer class="app-footer"><span>LLAJTAVOY · Hecho para Cochabamba</span><span>Un pedido. Todos conectados.</span></footer>
   </div>
   <nav id="mobile-nav" class="mobile-nav" aria-label="Navegación móvil"></nav>
@@ -77,9 +78,9 @@
   <script src="js/views/restaurante.view.js"></script>
   <script src="js/views/repartidor.view.js"></script>
   <script src="js/views/operaciones.view.js"></script>
-  <script src="js/views/middleware.view.js"></script>
-  <script src="js/views/arquitectura.view.js"></script>
   <script src="js/views/pagos.view.js"></script>
+  <script src="js/views/roles.view.js"></script>
+  <script src="js/core/access.js"></script>
   <script src="js/core/router.js"></script>
   <script src="js/app.js"></script>
   <!-- Los recursos externos son opcionales y nunca bloquean el arranque. -->

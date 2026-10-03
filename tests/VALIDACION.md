@@ -1,47 +1,58 @@
-# Validación — roles, flota y seguimiento, 3 de octubre de 2026
+# Validación — accesos y vistas por función, 3 de octubre de 2026
 
 ## Resultado actual
 
-**170 verificaciones JavaScript aprobadas**, registradas en [resultados-roles.json](resultados-roles.json), más **11 comprobaciones de estructura** mediante `python tests/static_check.py`. Se analizaron sin errores de sintaxis 52 fuentes de aplicación/pruebas y datos, más Leaflet 1.9.4 incluido. También pasó `git diff --check`.
+**207 verificaciones JavaScript aprobadas**, registradas en [resultados-accesos.json](resultados-accesos.json), más **15 comprobaciones de estructura** mediante `python tests/static_check.py`. Se analizaron 55 fuentes JavaScript, incluida Leaflet local, sin errores de sintaxis. El evaluador Node también terminó correctamente y pasó `git diff --check`.
 
 | Grupo | Casos | Alcance |
 | --- | ---: | --- |
 | Núcleo | 32 | Pedido completo, pago, cocina, ofertas, recogida, llegada, entrega, permisos, persistencia, correlación, ACK/NACK/retry/DLQ, idempotencia, 503 y cuota |
 | Tracking | 7 | Red vial, ritmo, repartidor asignado, pausa/reanudación, migración y destino inválido sin cambios parciales |
 | Red vial | 13 | 24 conexiones iniciales, geometría OSM, sentidos, accesos, interpolación, cobertura y perfiles |
-| Gestor de mapas | 24 | Interacciones instrumentadas, conservación de encuadre, seguimiento por defecto, cámara acotada, rastro, SVG, rutas/flota, popups/contactos y nuevo encuadre territorial al ampliar |
-| Navegación | 6 | Router/hash, cambio de actor, foco, modal y proveedor de pagos |
-| Roles y recuperación | 46 | Cuotas aisladas, recuperación de sesión 429, alcance de pedidos/pagos, reembolso, telemetría, estados cerrados y validaciones de campos/altas/servicios |
-| Comunicación | 14 | Contactos, respuestas, permisos de canal activo, bandeja privada, lectura, persistencia, cierre y reset |
-| Generación de HTML | 28 | Ocho vistas iniciales, fases de entrega, movimiento condicionado al estado y pestañas de cliente/restaurante sin datos ajenos |
+| Gestor de mapas | 24 | Interacciones instrumentadas, encuadre, seguimiento, cámara acotada, rastro, SVG, rutas/flota, contactos y ampliación |
+| Acceso y navegación | 33 | Cinco ventanas sin credenciales, menús por función, enlaces antiguos, contexto propio, perfiles válidos/persistidos, conservación de pedidos/carrito/mensajes, foco, modal, hashchange y proveedor |
+| Roles y recuperación | 46 | Cuotas aisladas, recuperación de 429, alcance de pedidos/pagos, reembolso, telemetría, estados cerrados y validaciones de campos/altas/servicios |
+| Comunicación | 14 | Contactos, respuestas, permisos de entrega activa, bandeja privada, lectura, persistencia, cierre y reset |
+| Generación de HTML | 38 | Siete vistas públicas, fases de entrega, pestañas sin datos ajenos, seis apartados administrativos y retirada de lenguaje técnico |
 
-Las pruebas JavaScript usan almacenamiento aislado, reloj/frames y, para mapas/navegación, DOM y API Leaflet instrumentados. No modifican el localStorage del usuario. Los casos están en `*.spec.js`; el evaluador de desarrollo carga los scripts clásicos en el orden de index.html. Estas comprobaciones no equivalen a una ejecución visual en navegador.
+## Cómo repetir las pruebas
 
-## Correcciones
+En PowerShell, desde la raíz del repositorio:
 
-- La ráfaga anterior consumía la misma cuota administrativa que Reset y causaba el 429 observado. Ahora sus 65 probes quedan aislados: 60 aprobados y 5 bloqueados. La recuperación continúa disponible y los permisos se mantienen.
-- El mapa ampliado conservaba el zoom del panel pequeño. Operaciones ahora recalcula el encuadre territorial y ajusta el zoom mínimo al tamaño de la ventana.
-- La flota tiene estados, destinos, rutas activas y previstas, rastro, detalles al pasar el cursor, seguimiento seleccionado y contactos locales.
-- Cada actor presenta sus funciones y datos; Pagos muestra transacciones y notificaciones sin direcciones. Los avisos del encabezado dependen del rol.
-- El tracking sigue por defecto cada nuevo tramo, permite explorar/recentrar y muestra fuente simulada, última posición, rumbo y secuencia. Preparación, movimiento, pausa y llegada tienen indicaciones acordes al estado.
-- Los mensajes locales verifican pertenencia a la entrega activa; operar otro actor no da acceso a las bandejas ajenas.
+```powershell
+node tests/run.cjs
+python tests/static_check.py
+git diff --check
+```
 
-## Evidencia histórica y límites
+Node/Python solo se necesitan para verificar el código; la aplicación sigue abriendo con doble clic. El evaluador carga los scripts clásicos públicos en el orden de index.html, usando almacenamiento y reloj aislados. Para mapas y navegación usa DOM y API Leaflet instrumentados. No abre un navegador ni cambia los datos de la sesión del usuario. El informe se guarda en resultados-accesos.json.
 
-Se conservan `resultados.json` (43 casos del sistema anterior) y `resultados-mapas.json` (81 de la revisión vial anterior). La geometría permanece en `example-route.json`: 2.34 km y 143 puntos entre Centro y Recoleta. `route-preview.png` es una figura de esa cartografía, no una captura del navegador.
+## Cambios comprobados
 
-El navegador de herramientas rechazó `file://`; no se abrió un servidor ni se eludió esa política. **La revisión visual real permanece pendiente**: CSS, canvas, arrastre/rueda/pellizco, popups, ampliación, tamaños de pantalla, foco y almacenamiento del archivo abierto con doble clic.
+- Inicio y Roles son públicos; sus menús no exponen bandejas ni funciones administrativas. Cada espacio tiene tareas y contexto propios.
+- Las ventanas de Restaurante y Repartidor eligen perfiles existentes. Cambiar de rol conserva el proceso; un enlace a otro rol regresa al selector. El último perfil se recupera del estado guardado.
+- Arquitectura y Middleware no se cargan desde index.html. Sus enlaces antiguos redirigen a Roles. Los escenarios de desarrollo quedan documentados fuera de la interfaz pública.
+- Administración presenta Resumen, Pedidos, Restaurantes, Repartidores, Incidentes y Pagos. Se conservan altas, apertura, disponibilidad, contactos, respaldo y reinicio con confirmación.
+- Pagos emplea el contexto del proveedor o administrador según el espacio. Los detalles usan etiquetas y referencias operativas; el cliente ya no ve correlationId ni JSON interno.
+- Elegir un rol no genera solicitudes al gateway. Se conserva la corrección anterior de cuotas: ráfaga aislada y recuperación administrativa disponible.
+- Se mantienen flota, rutas, destinos, trazas, movimientos automáticos y mensajes por entrega activa.
 
-## Recorrido manual por roles
+## Revisión visual pendiente
 
-1. Recarga con Ctrl+R. Cliente: crea un pedido y verifica que carrito, ubicación, pago y comprobante correspondan al pedido propio.
-2. Restaurante: selecciona esa cocina; acepta, inicia preparación y marca listo. Prueba menú/precio/agotado/apertura y Seguimiento y etapas. Cambiar de establecimiento debe ocultar el seguimiento anterior.
-3. Repartidor: selecciona Nueva oferta, acepta e inicia ruta al restaurante. El mapa debe seguirlo; arrastrar libera la cámara y Seguir repartidor vuelve a centrarla. Prueba ritmos y pausa.
-4. Recoge al llegar e inicia ruta al cliente. Cliente y Operaciones deben observar la misma posición y estado. Confirma entrega al llegar.
-5. Operaciones: amplía el mapa, usa Territorio/Panel, pasa el cursor por pins/rutas y selecciona Seguir entrega. Comprueba libres/ocupados, destinos y trazas. Sin pedidos, el panel debe explicar cómo iniciar, sin inventar rutas.
-6. Mensajes: contacta al repartidor desde su pin; cambia a su identidad, lee/responde y verifica la bandeja de operaciones. Otro repartidor no debe ver esos mensajes.
-7. Pagos: revisa aprobados/rechazados/reembolsados y referencias. No deben aparecer direcciones ni controles de cocina o reparto.
-8. Middleware: Generar ráfaga; deben registrarse 60 permitidas y 5 bloqueadas. Después prueba una alta y Reset. Prueba fallo/restauración, NACK/retry/DLQ y reprocesamiento.
-9. Arquitectura: selecciona los componentes y contrasta responsabilidades, actores y contratos con el proceso anterior.
+El navegador de herramientas rechazó file://. No se abrió un servidor ni se eludió esa política. **Estas pruebas no certifican la presentación visual en un navegador real**: quedan por comprobar CSS, diálogo/foco nativos, canvas, arrastre, rueda/pellizco, popups, ampliación, tamaños de pantalla y almacenamiento del archivo abierto con doble clic.
 
-Fuentes, licencia, cobertura y restricciones viales en [docs/mapas.md](../docs/mapas.md). Todo el seguimiento y la comunicación son una demostración local; no representan GPS, tráfico ni mensajes enviados a dispositivos externos.
+## Recorrido manual
+
+1. Recarga con Ctrl+R. Desde el enlace antiguo Arquitectura debe aparecer Roles. Confirma que no hay Middleware, Arquitectura ni controles de fallos en el menú.
+2. Cliente → Entrar: compra y verifica carrito, punto de entrega, pago, seguimiento y comprobante.
+3. Roles → Restaurante: elige esa cocina; acepta, prepara y marca listo. Menú/Historial/Estadísticas deben consultar solo ese establecimiento.
+4. Cambiar espacio: elige otra cocina; no debe mostrar el pedido de la anterior.
+5. Roles → Repartidor: elige Nueva oferta, acepta e inicia el tramo a la cocina. Prueba pausa, ritmos, seguimiento automático y exploración del mapa.
+6. Recoge al llegar e inicia el tramo al cliente. Cambia a Cliente y Administración: ambos deben observar la misma posición. Confirma entrega al llegar.
+7. Administración: visita sus seis apartados, agrega perfiles, cambia apertura/disponibilidad libre y registra un incidente. Amplía el mapa y contacta al equipo.
+8. Mensajes: cambia al rol y perfil destinatario, lee y responde; otro perfil no debe ver la conversación.
+9. Gestión de pagos: consulta transacciones y comprobantes sin datos personales de clientes ni funciones de cocina/reparto.
+10. En móvil, abre Menú y verifica Roles/Cambiar espacio. Recarga y comprueba que se conserva el espacio elegido.
+11. Administración → Incidentes: descarga un respaldo y prueba Reiniciar demostración con confirmación. Debe regresar a Roles y conservar el catálogo.
+
+Los informes anteriores resultados.json (43), resultados-mapas.json (81) y resultados-roles.json (170) son evidencia histórica. La figura route-preview.png representa cartografía y no es una captura del navegador. Fuentes y límites viales en [mapas.md](../docs/mapas.md). El seguimiento, pago y comunicación siguen siendo una demostración local.

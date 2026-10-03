@@ -1,158 +1,106 @@
 # LLAJTAVOY
 
-**Delivery conectado para Cochabamba.**
+**Delivery para Cochabamba, con un espacio para cada función.**
 
-Abre **index.html con doble clic**. La aplicación arranca automáticamente, presenta su dashboard y permite recorrer Cliente, Restaurante, Repartidor, Operaciones, Middleware, Arquitectura y Pagos desde un selector permanente. No requiere instalación, terminal, compilación ni servidor.
+Abre **index.html con doble clic**. No necesitas instalación, terminal, npm ni servidor. En el navegador integrado que ya tienes abierto, pulsa **Ctrl+R** para cargar los cambios.
 
 ## Para qué sirve
 
-Permite recorrer y entender el proceso de delivery de extremo a extremo: elegir comida, crear un pedido, aprobar o rechazar el pago, gestionar la cocina, asignar un repartidor, moverlo sobre una ruta calculada por calles reales y confirmar la entrega. También permite observar las solicitudes, los eventos, sus consumidores, reintentos y fallos.
+Permite demostrar todo el proceso de delivery: elegir comida, confirmar y pagar un pedido, prepararlo, asignar un repartidor, seguir su recorrido por calles de Cochabamba y confirmar la entrega. Los pedidos, pagos, mensajes, avisos y posiciones se comparten entre los espacios dentro del mismo navegador.
 
-Los restaurantes y repartidores iniciales son ficticios. Los sectores están contextualizados a Cochabamba. Los indicadores comienzan en cero y se calculan con los pedidos, pagos y eventos creados en esta aplicación.
+El seguimiento del repartidor avanza automáticamente durante cada recorrido iniciado. Los pagos, perfiles y mensajes son de demostración: no hay cobro real ni comunicación con teléfonos externos.
 
-## Actores y acceso
+## Elegir un rol y cambiar de ventana
 
-| Actor | Para qué sirve | Límite aplicado |
+1. En **Inicio**, pulsa **Quiero pedir**, o entra al apartado **Roles**.
+2. Elige Cliente, Restaurante, Repartidor, Administración o Gestión de pagos.
+3. Se abre una ventana de acceso. Para Restaurante selecciona el establecimiento; para Repartidor selecciona su nombre. Pulsa **Entrar**. No se pide contraseña ni se abre un login.
+4. El menú cambia y muestra las tareas de ese espacio. El perfil elegido aparece en la barra lateral; en móvil, usa **Menú** para ver las opciones adicionales.
+5. **Cambiar espacio** permite cambiar el perfil dentro del mismo rol. **Roles** permite escoger otra función. **Volver a mi espacio** recupera el acceso seleccionado.
+
+Cambiar de rol conserva pedidos, carrito y mensajes. Recargar conserva también el último espacio y su perfil. Los enlaces antiguos a Arquitectura o Middleware abren Roles. Esas herramientas y los escenarios de fallo quedan en la documentación para desarrolladores, fuera de la interfaz pública.
+
+## Qué hace cada espacio
+
+| Espacio | Sus opciones | Datos que consulta |
 | --- | --- | --- |
-| Cliente | Consultar catálogo, pedir, pagar, consultar comprobantes y seguir la entrega | Pedidos y notificaciones de `c1`, dirección local del cliente |
-| Restaurante | Administrar el menú y aceptar, rechazar o preparar pedidos | Establecimiento seleccionado y sus pedidos |
-| Repartidor | Declarar disponibilidad, recibir y aceptar ofertas, recorrer rutas | Repartidor seleccionado, ofertas y entregas asignadas |
-| Administrador | Gestionar altas, incidentes, operación, escenarios y auditoría | Operaciones, Middleware y Arquitectura; acciones administrativas registradas |
-| Proveedor de pagos | Procesar transacciones y comunicar sus estados | Vista Pagos; transacciones del proveedor local, sin direcciones ni nombres de clientes |
-
-El selector cambia el contexto del actor para observar todo el proceso sin login. El gateway valida las acciones y recursos de ese contexto. **Esto no es autenticación ni aislamiento de seguridad de servidor**: el propietario del navegador puede inspeccionar y alterar los scripts y localStorage. El proveedor local no realiza un intercambio autenticado con un servicio externo; esa integración queda fuera del sistema local.
+| Cliente | Restaurantes, Mi carrito, Seguir pedido, Mis pedidos, Avisos y Mensajes | Sus pedidos, dirección, avisos y comprobantes |
+| Restaurante | Pedidos, Menú, Historial, Estadísticas y Mensajes | Su establecimiento y sus pedidos; no los de otras cocinas |
+| Repartidor | Mis entregas, disponibilidad, ofertas, recorridos y Mensajes | Sus ofertas y entregas asignadas |
+| Administración | Resumen, Pedidos, Restaurantes, Repartidores, Incidentes, Pagos y Mensajes | Operación completa, altas, disponibilidad, incidentes y actividad del servicio |
+| Gestión de pagos | Transacciones y comprobantes | Estados e importes del proveedor local, sin direcciones ni nombres de clientes |
 
 ## Proceso completo: del antojo a la entrega
 
-1. **Cliente → Restaurantes:** abre un menú y agrega productos. El carrito admite un establecimiento por pedido. Si cambias, solicita confirmación antes de reemplazarlo.
-2. **Carrito:** revisa cantidades y total. Escribe nombre, dirección y notas. Selecciona la ubicación mediante un punto del mapa, una zona o coordenadas. Puedes intentar la geolocalización del navegador.
-3. **Pago:** elige Efectivo, QR o Tarjeta. No se piden datos de tarjeta y no se cobra dinero real.
-4. **Confirmar pedido:** la vista llama a `ApiGateway.request('POST', '/api/orders', ...)`. El gateway valida actor, ruta y cuota. OrderService valida catálogo, disponibilidad, cantidades, dirección y precios, que recalcula desde el catálogo.
-5. **PaymentService:** registra `payment.processing` y luego `payment.approved` o `payment.rejected`. Un pago rechazado conserva el carrito y deja el pedido con su estado de rechazo.
-6. **OrderService:** con el pago aprobado publica `order.created`. Todos los eventos de ese pedido usan el mismo `correlationId`.
-7. **Restaurante:** selecciona el establecimiento donde compraste. El consumidor de `q.restaurant.orders` recibe el evento y el pedido aparece. Pulsa Aceptar → Iniciar preparación → Pedido listo. Cada paso valida la transición y publica su evento.
-8. **DispatchService:** consume `order.ready`, cambia a búsqueda y ordena los repartidores elegibles por distancia vial al restaurante, comprobando también conexión al destino. Envía una oferta al más cercano.
-9. **Repartidor:** selecciona el nombre marcado con Nueva oferta. Acepta. Si rechaza, se ofrece al siguiente disponible; si no quedan candidatos, el pedido permanece en búsqueda hasta que haya uno elegible.
-10. **Ruta al restaurante:** inicia el recorrido. El punto se mueve sobre la geometría de calles descargada de OpenStreetMap. Cuando llega, se habilita Pedido recogido.
-11. **Ruta al cliente:** pulsa Iniciar ruta al cliente. Cambia a En camino. Al alcanzar el 86% publica `delivery.arriving`.
-12. **Cliente / Operaciones:** cambia de vista para observar posición, progreso, distancia y ETA. La animación continúa mientras cambias de vista.
-13. **Confirmar entrega:** al llegar al destino, se habilita la entrega. El pedido queda DELIVERED; el repartidor vuelve a AVAILABLE y acumula entrega y ganancia. Todos los paneles consultan el mismo estado.
-14. **Historial:** revisa el detalle y descarga el comprobante local. El centro de notificaciones permite alternar leída/no leída.
+1. **Roles → Cliente → Entrar:** explora restaurantes, abre un menú y agrega productos. El carrito admite un restaurante por pedido; cambiarlo pide confirmación.
+2. **Mi carrito:** ajusta cantidades y escribe nombre, dirección y notas. Pulsa **Elegir en el mapa**, selecciona una zona o un punto y guarda. También puedes intentar la ubicación del navegador.
+3. Elige **Efectivo, QR o Tarjeta** y confirma. No se piden datos bancarios. Un rechazo conserva el carrito; un pago aprobado envía el pedido a la cocina.
+4. **Roles → Restaurante:** entra al establecimiento donde compraste. En Pedidos, pulsa **Aceptar → Iniciar preparación → Pedido listo**. También puede rechazar un pedido cuando ese estado lo permite.
+5. El sistema busca un repartidor disponible y le ofrece la entrega. Si rechaza, prueba con el siguiente. Sin candidatos, espera a que haya uno disponible.
+6. **Roles → Repartidor:** selecciona el nombre marcado con **Nueva oferta** y acepta. Pulsa **Iniciar ruta al restaurante**. El mapa sigue el movimiento automáticamente.
+7. Al llegar a la cocina, pulsa **Pedido recogido** y después **Iniciar ruta al cliente**. El pedido cambia a En camino y después Llegando.
+8. **Roles → Cliente → Seguir pedido**, o **Administración → Pedidos → Seguir entrega**: observa la misma posición, ruta, estado, distancia y llegada estimada. Cambiar de espacio no detiene el recorrido.
+9. Vuelve al repartidor asignado y confirma la entrega al llegar al destino. El pedido queda Entregado y el repartidor vuelve a estar libre.
+10. Cliente puede consultar el historial, descargar su comprobante y marcar avisos como leídos.
 
-La duración depende de la distancia vial. La referencia es 24 km/h en moto y 12 km/h en bicicleta. En Repartidor puedes elegir **1×, 10× o 30×**; el ritmo inicial es 10× para observar el funcionamiento. La ETA usa distancia restante y velocidad de referencia, sin tráfico en vivo. El ritmo acelera la reproducción, no la velocidad utilizada en la ETA. Pausar o recargar conserva el último punto guardado; el tiempo con la aplicación cerrada no avanza el recorrido.
+No se permite recoger antes de llegar al restaurante ni entregar antes de llegar al destino. El restaurante administra sus precios, productos agotados y apertura desde su espacio. El repartidor puede pausar el recorrido o reportar una entrega fallida. Las cancelaciones permitidas y entregas fallidas revierten el pago local y liberan al repartidor.
 
-## Vistas según la función de cada actor
+## Mapa, rutas y seguimiento
 
-- **Inicio:** situación general, acceso a todas las vistas, mapa y actividad reciente.
-- **Cliente:** catálogo, búsqueda por nombre/categoría/zona, categorías, menú, cantidades, carrito, dirección, métodos de pago, tracking, historial, comprobante y notificaciones.
-- **Restaurante:** selector de establecimiento, pedidos nuevos y en preparación, entregas en curso, historial, estadísticas, alta de productos, cambio de precio, agotados y apertura/cierre; etapas animadas y seguimiento de sus pedidos.
-- **Repartidor:** selector de repartidor, disponibilidad, oferta, rechazo o aceptación, dos tramos de ruta, pausa, recogida, entrega y reporte de fallo; mensajes a cocina, cliente de la entrega y operaciones.
-- **Operaciones:** pedidos por hora, estados y eventos; indicadores derivados; mapa de flota con rutas activas/previstas, destinos, libres/ocupados, contactos y seguimiento seleccionado; altas de restaurantes/repartidores, incidentes, respaldo y restablecimiento.
-- **Middleware:** requests con actor y Request ID, rate limit, topología, colas, ACK/NACK/retry/DLQ, JSON y filtro por evento o correlation ID.
-- **Arquitectura:** componentes seleccionables con responsabilidades, operaciones y eventos. Incluye la tabla de actores y los límites del sistema local.
+Los mapas usan Leaflet y cartografía local de OpenStreetMap incluida en la carpeta. Funcionan por doble clic y sin conexión; no solicitan imágenes de mapas a un servicio externo.
 
-- **Pagos:** aprobación, rechazo, reembolso, referencias y notificaciones del proveedor local. El procesamiento es automático; no hay botones de cocina, despacho ni gestión de clientes.
+- Arrastra para explorar, usa rueda, pellizco, teclado o botones para ampliar y pulsa **Seguir repartidor** para volver a centrarlo. Explorar libera la cámara; cada nuevo tramo inicia con seguimiento automático.
+- Azul indica ruta pendiente, verde el recorrido realizado y línea discontinua un acceso o trayecto previsto. El panel muestra la última posición, pausa/llegada, distancia y estimación de llegada.
+- **Administración → Resumen → Territorio y flota** muestra repartidores libres, ocupados, ofertas, rutas y destinos. Pasa el cursor o toca los puntos para ver información, contactar o seguir una entrega.
+- **Ampliar** ajusta el mapa a la ventana; **Territorio** encuadra la cobertura y **Panel** muestra u oculta la información de flota. Sin pedidos, el panel explica cómo activar el proceso.
+- El ritmo inicial es **10×**. El repartidor puede elegir **1×, 10× o 30×**. Esto acelera la demostración; la estimación usa 24 km/h en moto y 12 km/h en bicicleta, sin tráfico en vivo.
 
-## Mensajes y avisos locales
+Las rutas siguen calles del extracto vial y sus sentidos básicos por vehículo. La cobertura incluye Centro, Recoleta, Cala Cala y Queru Queru; se rechazan destinos fuera de ella o sin conexión. Los accesos cortos a una dirección son aproximados, de hasta 350 m por extremo. No es navegación comercial. Fuentes, licencia y restricciones: [mapas.md](docs/mapas.md).
 
-Cliente, restaurante y repartidor tienen una bandeja propia. Durante una entrega activa pueden comunicarse con los actores vinculados a ese pedido y con Operaciones. Operaciones puede contactar a las cocinas y repartidores, incluso libres, desde los pins del mapa. El proveedor de pagos recibe eventos de transacción y no accede a estos mensajes personales.
+## Mensajes y avisos
 
-Pulsa **Mensaje al repartidor**, **Mensaje a la cocina**, **Mensaje al cliente** o **Contactar operaciones**, escribe hasta 500 caracteres y envía. Cambia al rol y a la identidad del destinatario: el mensaje aparece en su bandeja, puede marcarlo leído y responder. La lectura se actualiza también para el remitente. Los avisos del encabezado dependen del actor seleccionado. Los mensajes directos de una entrega cerrada no admiten nuevos envíos; el contacto con Operaciones sigue disponible.
+Cliente, cocina y repartidor tienen su propia bandeja. Durante una entrega activa pueden contactar a los participantes de ese pedido y a Administración. Administración puede contactar al equipo incluso cuando está libre, desde el mapa o sus listados.
 
-Estos mensajes se guardan en el mismo navegador; no llegan a teléfonos ni a una aplicación externa. El gateway registra las acciones y aplica el alcance por actor/pedido. Se conservan al recargar y se eliminan al restablecer.
+Pulsa **Mensaje al repartidor**, **Mensaje a la cocina**, **Mensaje al cliente** o **Contactar operaciones**; escribe hasta 500 caracteres y envía. En Roles, cambia al destinatario y su perfil para leer y responder. Otro repartidor o restaurante no ve esos mensajes. Las entregas cerradas ya no permiten nuevos mensajes directos entre sus participantes; el contacto con Administración sigue disponible.
 
-## Arquitectura y funcionamiento interno
+Los mensajes se guardan en este navegador, sin envío externo. El proveedor de pagos consulta actualizaciones de transacciones y no accede a las bandejas personales.
 
-```text
-Vistas de actores
-       |
-       v
-ApiGateway -- validación de contexto, rutas, rate limit y logs
-       |
-       v
-Servicios por responsabilidad -- DatabaseService -- localStorage
-       |
-       v
-EventBroker / delivery.events
-       |
-       +-- q.restaurant.orders --> RestaurantService
-       +-- q.dispatch.orders   --> DispatchService
-       +-- q.driver.offers     --> DriverService
-       +-- q.notifications     --> NotificationService
-       +-- q.analytics         --> AnalyticsService
-       +-- q.audit             --> AuditService
-       +-- q.payments          --> PaymentService
-```
+## Administración y respaldo
 
-**Kong y RabbitMQ están representados mediante componentes JavaScript que reproducen su rol arquitectónico.** No hay servidores reales Kong/RabbitMQ ni procesos de microservicios distribuidos. Los servicios están separados por responsabilidades dentro del navegador; esto permite estudiar los patrones API Gateway y Event-Driven Architecture sin infraestructura externa.
+- **Resumen:** indicadores reales de esta sesión, estado de los pedidos, actividad y mapa de flota.
+- **Pedidos:** detalle y seguimiento de las entregas.
+- **Restaurantes:** agregar establecimientos, consultar dirección, abrir/cerrar temporalmente y contactar.
+- **Repartidores:** agregar perfiles, revisar asignaciones, habilitar/pausar disponibilidad cuando no tienen entrega y contactar.
+- **Incidentes:** registrar un aviso general o vinculado a un pedido y revisar actividad. En Respaldo de la operación puedes descargar los datos o reiniciar la demostración.
+- **Pagos:** consultar aprobados, rechazados, reembolsados y comprobantes.
 
-El EventBus interno sincroniza las vistas. DatabaseService centraliza la fuente de verdad y la persistencia. El broker conserva cada evento, crea una entrega por cola vinculada y llama a su consumidor. El ACK corresponde a una entrega a un consumidor, por lo que un solo evento puede generar varios ACK.
+**Reiniciar demostración** pide confirmación. Elimina pedidos, pagos, mensajes, avisos e historial operativo, detiene recorridos y deja a los repartidores libres. Conserva el catálogo y sus cambios. Regresa a Roles; exporta primero si necesitas guardar la sesión. No hay importación automática de respaldos.
 
-## Escenarios de fallo y recuperación
+## Guardado y cierre
 
-En Operaciones o Middleware usa Control de escenarios:
+Recargar conserva catálogo, carrito, pedidos, pagos, mensajes, avisos, posiciones y espacio seleccionado. Usa el mismo navegador, perfil y ruta del archivo: otro navegador, modo privado o mover la carpeta puede mostrar otra sesión. Si no es posible guardar, aparece un aviso y la sesión continúa en memoria; descarga un respaldo antes de cerrar.
 
-| Control | Efecto real | Cómo comprobarlo |
-| --- | --- | --- |
-| Rechazar próximo pago | Rechaza el siguiente pedido | PAYMENT_REJECTED, evento payment.rejected, sin venta aprobada |
-| Fallar próxima notificación | El consumidor registra FAILED y NACK; reintenta y envía | notification.failed, luego notification.sent sin mensaje duplicado |
-| Repartidor rechaza oferta | Rechaza automáticamente la siguiente oferta | driver.offer.rejected y oferta al siguiente disponible |
-| Forzar NACK | Primer intento de auditoría falla | NACK → RETRY → ACK |
-| Forzar Retry | Fallan los dos primeros intentos de auditoría | Dos NACK y dos Retry; tercer intento ACK |
-| Enviar a DLQ | Fallan tres intentos de auditoría | Error, tres intentos y mensaje en DLQ |
-| Reprocesar | Recupera una entrega de DLQ sin volver a publicar el evento | Mensaje pasa a READY y luego ACK |
-| Generar ráfaga | Realiza 65 probes en una cuota aislada | 60 permitidos y 5 bloqueados (429), sin consumir la cuota de las altas |
-| Servicio no disponible | Desactiva el servicio elegido en el gateway/consumidor | Requests 503 o reintentos y DLQ del consumidor afectado |
-| Restaurar servicio | Quita el fallo configurado | Nuevos requests vuelven a funcionar; DLQ se reprocesa manualmente |
+Para cerrar, cierra la pestaña o ventana. No hay proceso ni servidor que detener. Los recorridos no avanzan con la aplicación cerrada; al volver, se retoma el último punto guardado de un recorrido que estaba activo.
 
-La cuota regular usa una ventana móvil de 60 segundos por actor e identidad. **La ráfaga tiene su propia cuota**: puede repetirse y conserva los controles administrativos. Restaurar servicios y reprocesar DLQ usan una cuota separada de recuperación; restablecer no queda bloqueado por la cuota, incluso si una sesión antigua ya estaba limitada. El permiso de administrador sigue siendo obligatorio y las acciones se auditan. Una operación regular limitada indica cuántos segundos faltan para reintentar; los requests bloqueados también se registran.
+## Si algo no funciona
 
-El error observado al confirmar Restablecer era causado por la antigua ráfaga: consumía los 60 requests del mismo administrador que necesitaba restablecer. La separación de cuotas y el acceso de recuperación corrigen esa causa.
-
-Los reintentos del broker tienen espera creciente de 400 y 800 ms. Son **tres intentos totales**, no tres reintentos adicionales. La notificación, auditoría y analytics son idempotentes por Event ID. Los consumidores reanudan los mensajes pendientes al recargar.
-
-Cancelar un pedido, rechazarlo desde el restaurante o reportar entrega fallida revierte el pago aprobado local y libera los repartidores vinculados. Solo se habilitan las transiciones permitidas por la máquina de estados.
-
-## Persistencia, mapas y respaldo
-
-- La clave principal es `llajtavoy.state.v1`. Recargar conserva el catálogo, carrito, pedidos, pagos, posiciones, eventos, entregas del broker, mensajes locales y notificaciones.
-- Los navegadores deciden cómo almacenar datos en `file://`. Usa el mismo navegador y la misma ruta de archivo; otros perfiles, modo privado o mover la carpeta pueden mostrar otra sesión.
-- Si localStorage está bloqueado o lleno, el sistema continúa en memoria y muestra un aviso. Exporta desde Operaciones antes de cerrar. Un registro corrupto se conserva en una clave `.recovery` cuando el almacenamiento lo permite.
-- Todos los mapas usan **Leaflet incluido en la carpeta y cartografía vectorial real de Cochabamba**, tanto por doble clic como sin conexión. No se solicitan imágenes de tiles ni un servicio de mapas al ejecutar la aplicación.
-- Puedes arrastrar, ampliar con rueda/pellizco y botones, explorar con teclado, pulsar **Ver todo**, **Ampliar** o **Seguir repartidor**. La cámara sigue al repartidor por defecto en cada nuevo tramo; arrastrar desactiva ese seguimiento para explorar. El centro, zoom y esa elección se conservan al actualizar las vistas. El panel muestra hora de la última posición, pausa/llegada/demora, rumbo y secuencia de actualizaciones; todos son datos simulados. La línea verde conserva el recorrido realizado sobre las curvas de la ruta.
-- En **Operaciones → Territorio y flota**, pasa el cursor o toca los pins para ver estados y destinos. Pulsa una ruta o pin para seleccionar **Seguir entrega** o enviar un mensaje. **Ampliar** recalcula el encuadre para el nuevo tamaño; **Territorio** muestra la cobertura cargada y **Panel** oculta/muestra la información de flota. No se inventan rutas cuando no existen pedidos: el panel explica cómo activarlas.
-- En **Cliente → Ubicación**, haz clic en un punto o arrastra el pin. Seleccionar no reconstruye el mapa. Las coordenadas deben estar dentro de la cobertura; al crear el pedido se comprueban proximidad a una calle utilizable y conexión desde el restaurante.
-- Las rutas se calculan localmente sobre la red vial OSM, con sentidos únicos, rotondas y restricciones básicas por vehículo registradas en el extracto. La línea azul sigue calles; los accesos cortos a la dirección aparecen discontinuos. Cada acceso puede medir como máximo 350 m y no constituye una ruta vial verificada.
-- La cobertura incluida comprende Centro, Recoleta, Cala Cala y Queru Queru, entre latitudes -17.413/-17.355 y longitudes -66.194/-66.129. El sistema rechaza destinos fuera de esa cobertura o sin conexión, en vez de inventar una ruta. No es navegación comercial ni contiene tráfico, cierres, todos los giros restringidos o GPS externo en vivo.
-- Las rutas antiguas activas se recalculan desde su último punto al recargar; no se borran los pedidos. Si no existe una conexión válida, se detiene ese recorrido y se muestra el motivo.
-- Si falla la librería local, existe un respaldo SVG con la misma red vial, arrastre, rueda, botones y teclado. Consulta **[docs/mapas.md](docs/mapas.md)** para fuentes, licencia, algoritmo y límites.
-- Turf es opcional para calcular el punto interpolado; existe una interpolación propia. Chart.js es opcional; existe un gráfico HTML/CSS. Los iconos Material Symbols tienen un respaldo SVG local y los modales son nativos.
-- Los scripts locales son clásicos y no utilizan `fetch` de JSON ni ES Modules. Los datos iniciales están en `js/seed-data.js`.
-- Exportar respaldo descarga todo el estado como JSON. No existe importación automática de respaldos en la interfaz. Eventos y requests crecen con el uso; la cuota de almacenamiento del navegador es finita.
-
-## Restablecer el proceso
-
-Ve a **Operaciones → Restablecer escenario**. La aplicación pide confirmación. Elimina pedidos, pagos, notificaciones, mensajes locales, eventos, colas y métricas, detiene las rutas y reinicia los repartidores. Conserva el catálogo actual, incluyendo cambios de menú y altas de restaurantes. El request de restablecimiento queda como nueva entrada de auditoría del gateway. Exporta antes si necesitas conservar la sesión.
-
-## Archivos principales
-
-| Archivo o carpeta | Función |
+| Situación | Qué hacer |
 | --- | --- |
-| `index.html` | Único punto de entrada, shell y orden de scripts |
-| `css/` | Paleta, layout, responsive, componentes, animaciones y estilos de vistas |
-| `js/core/` | Persistencia, EventBus, gateway, broker, eventos, estados y router |
-| `js/services/` | Catálogo, restaurante, pedidos, pagos, despacho, repartidores, tracking, notificaciones, analytics, auditoría y comunicación local |
-| `js/views/` | Inicio y siete vistas de actores/herramientas |
-| `js/maps/` | Cartografía local OSM, red vial, rutas y gestor interactivo |
-| `js/ui/` | Iconos, modales, descargas, avisos, timeline y gráficos |
-| `assets/images/` | Identidad e ilustraciones SVG locales |
-| `docs/` | Arquitectura, middleware, catálogo de eventos y flujo |
-| `tests/` | Verificaciones funcionales del núcleo y reporte de validación |
+| Sigues viendo el menú anterior | Recarga con Ctrl+R y entra a Roles |
+| Una ruta de otro rol abre Roles | Elige el espacio correspondiente y pulsa Entrar |
+| El restaurante no recibe el pedido | Selecciona el establecimiento de la compra y verifica pago aprobado |
+| No llega una oferta al repartidor | Selecciona el nombre con Nueva oferta o habilita un repartidor libre |
+| La ruta no avanza | Entra al repartidor asignado e inicia/reanuda el tramo |
+| Ubicación fuera de cobertura | Escoge un punto de las zonas incluidas en el mapa |
+| Ubicación automática bloqueada | Elige manualmente el punto de entrega |
+| Mensaje no aparece | Cambia al rol y perfil destinatario dentro del mismo navegador |
+| Límite de solicitudes | Espera los segundos indicados; elegir un rol no consume solicitudes |
+| Fallos guardados de una demostración anterior | Descarga respaldo desde Administración → Incidentes y reinicia la demostración |
 
-## Límites técnicos reales
+## Alcance y documentación técnica
 
-No hay delivery, cobros, infraestructura de mensajería, autenticación ni GPS de repartidores externos conectados. La ubicación del cliente puede venir de geolocalización con su permiso; el recorrido del repartidor avanza sobre puntos locales. Para operación multiusuario real son necesarios backend, autenticación, autorización de servidor, proveedor de pagos y dispositivos de repartidores, además de infraestructura de mensajería.
+Este sistema es una demostración local funcional. Cambiar roles sin contraseña permite recorrer el proceso, pero no constituye autenticación ni protección de servidor. Para uso real con varios dispositivos hacen falta backend, permisos de servidor, pagos y GPS externos. Los perfiles iniciales son ficticios y los indicadores se calculan con los pedidos creados aquí.
 
-La aplicación necesita JavaScript y un navegador moderno con `<dialog>` y `requestAnimationFrame`. La geolocalización puede estar bloqueada al abrir archivos locales; siempre puedes elegir el punto manualmente. Los recursos externos opcionales aportan fuente, iconos y gráficos: el funcionamiento central es local.
+El detalle para programadores queda en [desarrollo.md](docs/desarrollo.md), [arquitectura.md](docs/arquitectura.md), [middleware.md](docs/middleware.md), [eventos.md](docs/eventos.md) y [flujo-pedido.md](docs/flujo-pedido.md). El acceso público se organiza en `js/core/access.js`, `js/core/router.js`, `js/views/roles.view.js` y `js/app.js`.
 
-Consulta **tests/VALIDACION.md** para distinguir lo comprobado automáticamente de la verificación visual pendiente. El navegador integrado de Codex bloqueó `file://` y no se eludió esa política.
+Consulta [VALIDACION.md](tests/VALIDACION.md) para las pruebas ejecutadas y la revisión visual pendiente. El navegador de herramientas bloquea file://; las pruebas automáticas usan estado y APIs instrumentadas.
