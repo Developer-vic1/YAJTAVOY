@@ -7,3 +7,7 @@ Desktop.ini
 # Respaldos locales descargados; nunca publicar datos de una sesión
 llajtavoy-respaldo*.json
 comprobante-CB-*.txt
+__pycache__/
+*.pyc
+assets/data/*-raw.json
+scripts/map-query-url.txt

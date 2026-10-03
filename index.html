@@ -13,9 +13,10 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/animations.css">
   <link rel="stylesheet" href="css/cliente.css">
+  <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/maps.css">
   <link rel="stylesheet" href="css/middleware.css">
   <link rel="stylesheet" media="print" onload="this.media='all'; window.LlajtaVoy?.EventBus.emit('fonts:ready')" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Material+Symbols+Rounded:wght@400&display=swap">
-  <link rel="stylesheet" media="print" onload="this.media='all'; window.LlajtaVoy?.EventBus.emit('library:ready')" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Ir al contenido</a>
@@ -44,6 +45,9 @@
   <script src="js/core/event-broker.js"></script>
   <script src="js/core/api-gateway.js"></script>
   <script src="js/maps/cochabamba.js"></script>
+  <script src="js/maps/street-data.js"></script>
+  <script src="js/maps/landmark-data.js"></script>
+  <script src="js/maps/street-network.js"></script>
   <script src="js/maps/routes.js"></script>
   <script src="js/services/catalog.service.js"></script>
   <script src="js/services/payment.service.js"></script>
@@ -61,7 +65,9 @@
   <script src="js/ui/timeline.js"></script>
   <script src="js/ui/charts.js"></script>
   <script src="js/ui/components.js"></script>
+  <script src="assets/vendor/leaflet/leaflet.js"></script>
   <script src="js/maps/map-manager.js"></script>
+  <script src="js/ui/tracking.js"></script>
   <script src="js/views/home.view.js"></script>
   <script src="js/views/cliente.view.js"></script>
   <script src="js/views/restaurante.view.js"></script>
@@ -72,7 +78,6 @@
   <script src="js/core/router.js"></script>
   <script src="js/app.js"></script>
   <!-- Los recursos externos son opcionales y nunca bloquean el arranque. -->
-  <script async src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onload="window.LlajtaVoy.EventBus.emit('library:ready')"></script>
   <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" onload="window.LlajtaVoy.EventBus.emit('library:ready')"></script>
   <script async src="https://cdn.jsdelivr.net/npm/@turf/turf@7.2.0/turf.min.js"></script>
 </body>

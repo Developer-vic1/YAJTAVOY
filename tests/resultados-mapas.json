@@ -1,0 +1,605 @@
+{
+  "date": "2026-10-02",
+  "runtime": "V8 aislado; DOM/Leaflet instrumentados; sin navegador real",
+  "passed": 81,
+  "groups": {
+    "core": [
+      {
+        "name": "KPIs iniciales derivados sin pedidos inventados",
+        "status": "PASS"
+      },
+      {
+        "name": "Checkout gateway, precio desde catálogo y pago aprobado",
+        "status": "PASS"
+      },
+      {
+        "name": "Secuencia payment.processing → approved → order.created",
+        "status": "PASS"
+      },
+      {
+        "name": "Mismo objeto de pedido en actor restaurante",
+        "status": "PASS"
+      },
+      {
+        "name": "Otro cliente no accede al pedido",
+        "status": "PASS"
+      },
+      {
+        "name": "Otro restaurante no modifica el pedido",
+        "status": "PASS"
+      },
+      {
+        "name": "Producto de otro establecimiento no modificable",
+        "status": "PASS"
+      },
+      {
+        "name": "Despacho automático y evento de búsqueda",
+        "status": "PASS"
+      },
+      {
+        "name": "Oferta rechazada pasa al siguiente candidato",
+        "status": "PASS"
+      },
+      {
+        "name": "Asignación con contexto de repartidor",
+        "status": "PASS"
+      },
+      {
+        "name": "No permite recoger antes de llegar",
+        "status": "PASS"
+      },
+      {
+        "name": "Persistencia de posición, pedido y pago al recargar capa de datos",
+        "status": "PASS"
+      },
+      {
+        "name": "Ruta continua termina en restaurante y distancia disminuye",
+        "status": "PASS"
+      },
+      {
+        "name": "GPS a cliente, ETA cero y ARRIVING",
+        "status": "PASS"
+      },
+      {
+        "name": "Entrega completa libera repartidor y actualiza KPIs",
+        "status": "PASS"
+      },
+      {
+        "name": "Estado terminal no regresa a preparación",
+        "status": "PASS"
+      },
+      {
+        "name": "Eventos del pedido conservan correlationId",
+        "status": "PASS"
+      },
+      {
+        "name": "Notificaciones de entrega generadas sin duplicados",
+        "status": "PASS"
+      },
+      {
+        "name": "Lectura de notificaciones persistida",
+        "status": "PASS"
+      },
+      {
+        "name": "Rechazo de pago real sin venta ni order.created",
+        "status": "PASS"
+      },
+      {
+        "name": "Notificación falla, reintenta y envía sin duplicar",
+        "status": "PASS"
+      },
+      {
+        "name": "Cancelación revierte pago y venta",
+        "status": "PASS"
+      },
+      {
+        "name": "NACK → Retry → ACK observable",
+        "status": "PASS"
+      },
+      {
+        "name": "Dos fallos, tercer intento ACK",
+        "status": "PASS"
+      },
+      {
+        "name": "DLQ conserva error y tres intentos",
+        "status": "PASS"
+      },
+      {
+        "name": "Reprocesar DLQ sin duplicar evento",
+        "status": "PASS"
+      },
+      {
+        "name": "Servicio caído responde 503",
+        "status": "PASS"
+      },
+      {
+        "name": "Servicio restaurado permite crear pedido",
+        "status": "PASS"
+      },
+      {
+        "name": "Caída del pago interno no crea pedido parcial",
+        "status": "PASS"
+      },
+      {
+        "name": "60 requests permitidos y 5 bloqueados; 65 logs",
+        "status": "PASS"
+      },
+      {
+        "name": "Menú cambia y producto agotado no comprable",
+        "status": "PASS"
+      },
+      {
+        "name": "Restablecimiento elimina datos operativos y conserva catálogo editado",
+        "status": "PASS"
+      }
+    ],
+    "tracking": [
+      {
+        "name": "La ruta comienza con geometría vial y velocidades explícitas",
+        "status": "PASS"
+      },
+      {
+        "name": "El repartidor asignado puede ajustar la reproducción por el gateway",
+        "status": "PASS"
+      },
+      {
+        "name": "Ritmos inválidos se rechazan y conservan el valor previo",
+        "status": "PASS"
+      },
+      {
+        "name": "Otro repartidor no modifica el ritmo de un pedido ajeno",
+        "status": "PASS"
+      },
+      {
+        "name": "Pausa y reanudación conservan progreso y posición",
+        "status": "PASS"
+      },
+      {
+        "name": "Una ruta antigua se migra desde su última posición sin borrar el pedido",
+        "status": "PASS"
+      },
+      {
+        "name": "Un destino sin cobertura no cambia el pedido a En camino ni reemplaza el tramo",
+        "status": "PASS"
+      }
+    ],
+    "routing": [
+      {
+        "name": "24 trayectos del catálogo tienen conexión vial",
+        "status": "PASS"
+      },
+      {
+        "name": "Las rutas identifican origen OSM, vehículo y calles",
+        "status": "PASS"
+      },
+      {
+        "name": "Cada segmento vial se encuentra sobre una geometría OSM descargada",
+        "status": "PASS"
+      },
+      {
+        "name": "Los 24 recorridos respetan sentidos y rotondas registrados",
+        "status": "PASS"
+      },
+      {
+        "name": "Los accesos se distinguen y no exceden 350 m por extremo",
+        "status": "PASS"
+      },
+      {
+        "name": "El recorrido Centro a Recoleta incluye más de 100 vértices reales",
+        "status": "PASS"
+      },
+      {
+        "name": "Interpolación llega exactamente a ambos extremos",
+        "status": "PASS"
+      },
+      {
+        "name": "El avance intermedio permanece sobre la polilínea",
+        "status": "PASS"
+      },
+      {
+        "name": "Puntos fuera de cobertura se rechazan sin crear un trazo ficticio",
+        "status": "PASS"
+      },
+      {
+        "name": "Origen y destino iguales producen distancia cero sin NaN",
+        "status": "PASS"
+      },
+      {
+        "name": "Un solo sentido obliga al regreso por calles conectadas",
+        "status": "PASS"
+      },
+      {
+        "name": "La ruta en moto excluye vía privada y ciclovía",
+        "status": "PASS"
+      },
+      {
+        "name": "El perfil bicicleta puede utilizar la ciclovía",
+        "status": "PASS"
+      }
+    ],
+    "maps": [
+      {
+        "name": "file:// crea el mapa Leaflet con geometría local",
+        "status": "PASS"
+      },
+      {
+        "name": "Arrastre, rueda, teclado y pellizco están habilitados",
+        "status": "PASS"
+      },
+      {
+        "name": "Los nueve actores iniciales aparecen como marcadores",
+        "status": "PASS"
+      },
+      {
+        "name": "Las calles se agrupan para evitar miles de capas",
+        "status": "PASS"
+      },
+      {
+        "name": "La actualización de la vista conserva centro y zoom",
+        "status": "PASS"
+      },
+      {
+        "name": "El clic mueve el destino sin reconstruir ni recentrar el mapa",
+        "status": "PASS"
+      },
+      {
+        "name": "Arrastrar el pin actualiza las coordenadas del destino",
+        "status": "PASS"
+      },
+      {
+        "name": "Tracking mueve el repartidor sin desplazar la vista por defecto",
+        "status": "PASS"
+      },
+      {
+        "name": "Seguir recentra y arrastrar el mapa desactiva el seguimiento",
+        "status": "PASS"
+      },
+      {
+        "name": "Después de arrastrar se puede explorar sin seguimiento automático",
+        "status": "PASS"
+      },
+      {
+        "name": "Ampliar ajusta el contenedor y recalcula su tamaño",
+        "status": "PASS"
+      },
+      {
+        "name": "Mientras se arrastra el mapa, el shell detecta interacción activa",
+        "status": "PASS"
+      },
+      {
+        "name": "El final del gesto libera las actualizaciones pendientes",
+        "status": "PASS"
+      },
+      {
+        "name": "Actualizar la vista conserva el modo ampliado",
+        "status": "PASS"
+      },
+      {
+        "name": "Sin Leaflet el respaldo vectorial permite zoom",
+        "status": "PASS"
+      },
+      {
+        "name": "El respaldo permite arrastrar y no confunde el gesto con seleccionar",
+        "status": "PASS"
+      }
+    ],
+    "navigation": [
+      {
+        "name": "Cambiar de vista con un campo enfocado sincroniza actor y pantalla",
+        "status": "PASS"
+      },
+      {
+        "name": "Navegar retira el foco del campo de la vista anterior",
+        "status": "PASS"
+      },
+      {
+        "name": "Hashchange/Atrás vuelve a la vista correspondiente",
+        "status": "PASS"
+      },
+      {
+        "name": "Navegar cierra el modal antes de cambiar el contexto del actor",
+        "status": "PASS"
+      },
+      {
+        "name": "Las actualizaciones de fondo conservan la edición del formulario",
+        "status": "PASS"
+      }
+    ],
+    "render": [
+      {
+        "name": "Render HTML home",
+        "status": "PASS"
+      },
+      {
+        "name": "Render HTML cliente",
+        "status": "PASS"
+      },
+      {
+        "name": "Render HTML restaurante",
+        "status": "PASS"
+      },
+      {
+        "name": "Render HTML repartidor",
+        "status": "PASS"
+      },
+      {
+        "name": "Render HTML operaciones",
+        "status": "PASS"
+      },
+      {
+        "name": "Render HTML middleware",
+        "status": "PASS"
+      },
+      {
+        "name": "Render HTML arquitectura",
+        "status": "PASS"
+      },
+      {
+        "name": "Panel tracking con selector de ritmo y calles",
+        "status": "PASS"
+      }
+    ]
+  },
+  "routeMatrix": [
+    {
+      "driver": "d1",
+      "restaurant": "r1",
+      "km": 1.27,
+      "points": 48,
+      "accessM": 46
+    },
+    {
+      "driver": "d1",
+      "restaurant": "r2",
+      "km": 2.74,
+      "points": 132,
+      "accessM": 64
+    },
+    {
+      "driver": "d1",
+      "restaurant": "r3",
+      "km": 3.67,
+      "points": 117,
+      "accessM": 42
+    },
+    {
+      "driver": "d1",
+      "restaurant": "r4",
+      "km": 2.56,
+      "points": 82,
+      "accessM": 51
+    },
+    {
+      "driver": "d1",
+      "restaurant": "r5",
+      "km": 3.45,
+      "points": 169,
+      "accessM": 36
+    },
+    {
+      "driver": "d1",
+      "restaurant": "r6",
+      "km": 1.11,
+      "points": 29,
+      "accessM": 37
+    },
+    {
+      "driver": "d2",
+      "restaurant": "r1",
+      "km": 3.13,
+      "points": 122,
+      "accessM": 44
+    },
+    {
+      "driver": "d2",
+      "restaurant": "r2",
+      "km": 0.63,
+      "points": 30,
+      "accessM": 62
+    },
+    {
+      "driver": "d2",
+      "restaurant": "r3",
+      "km": 2.07,
+      "points": 82,
+      "accessM": 41
+    },
+    {
+      "driver": "d2",
+      "restaurant": "r4",
+      "km": 0.97,
+      "points": 30,
+      "accessM": 50
+    },
+    {
+      "driver": "d2",
+      "restaurant": "r5",
+      "km": 1.74,
+      "points": 61,
+      "accessM": 35
+    },
+    {
+      "driver": "d2",
+      "restaurant": "r6",
+      "km": 3.08,
+      "points": 123,
+      "accessM": 35
+    },
+    {
+      "driver": "d3",
+      "restaurant": "r1",
+      "km": 3.51,
+      "points": 172,
+      "accessM": 52
+    },
+    {
+      "driver": "d3",
+      "restaurant": "r2",
+      "km": 1.89,
+      "points": 56,
+      "accessM": 69
+    },
+    {
+      "driver": "d3",
+      "restaurant": "r3",
+      "km": 1.33,
+      "points": 38,
+      "accessM": 48
+    },
+    {
+      "driver": "d3",
+      "restaurant": "r4",
+      "km": 2.17,
+      "points": 91,
+      "accessM": 57
+    },
+    {
+      "driver": "d3",
+      "restaurant": "r5",
+      "km": 3.02,
+      "points": 89,
+      "accessM": 42
+    },
+    {
+      "driver": "d3",
+      "restaurant": "r6",
+      "km": 3.02,
+      "points": 133,
+      "accessM": 42
+    },
+    {
+      "restaurant": "r1",
+      "to": "cliente",
+      "km": 2.34,
+      "points": 143,
+      "accessM": 49,
+      "streets": [
+        "Acceso al punto de origen",
+        "Plaza 14 de Septiembre",
+        "Calle España",
+        "Avenida Heroínas de la Coronilla",
+        "Avenida General José de San Martín",
+        "Plaza Cristobal Colón",
+        "Calle Coronel Eduardo Paccieri",
+        "Avenida Daniel Salamanca",
+        "Plaza Constitución",
+        "Avenida Daniel Salamanca",
+        "Plazuela Carlos Quintanilla",
+        "Avenida Oquendo",
+        "Rotonda Reintegración Marítima",
+        "Avenida Oquendo",
+        "Plaza Ubaldo Anze",
+        "Avenida General José Manuel Pando",
+        "Pasaje Tupiza 1",
+        "Acceso al destino"
+      ]
+    },
+    {
+      "restaurant": "r2",
+      "to": "cliente",
+      "km": 1.47,
+      "points": 57,
+      "accessM": 66,
+      "streets": [
+        "Acceso al punto de origen",
+        "Calle Juan Capriles",
+        "Avenida Potosí",
+        "Calle Beni",
+        "Calle sin nombre",
+        "Avenida General José Manuel Pando",
+        "Pasaje Tupiza 1",
+        "Acceso al destino"
+      ]
+    },
+    {
+      "restaurant": "r3",
+      "to": "cliente",
+      "km": 3.19,
+      "points": 132,
+      "accessM": 45,
+      "streets": [
+        "Acceso al punto de origen",
+        "Pasaje B",
+        "Calle Manchaypuito",
+        "Avenida Abraham Lincoln",
+        "Avenida Ricardo Jaimes Freire",
+        "Rotonda América y Ricardo Jaimes Freyre",
+        "Avenida América",
+        "Plaza Charles de Gaulle",
+        "Avenida General Andrés de Santa Cruz",
+        "Calle Beni",
+        "Calle sin nombre",
+        "Avenida General José Manuel Pando",
+        "Pasaje Tupiza 1",
+        "Acceso al destino"
+      ]
+    },
+    {
+      "restaurant": "r4",
+      "to": "cliente",
+      "km": 0.33,
+      "points": 24,
+      "accessM": 54,
+      "streets": [
+        "Acceso al punto de origen",
+        "Pasaje Portales",
+        "Calle Beni",
+        "Calle sin nombre",
+        "Avenida General José Manuel Pando",
+        "Pasaje Tupiza 1",
+        "Acceso al destino"
+      ]
+    },
+    {
+      "restaurant": "r5",
+      "to": "cliente",
+      "km": 1.69,
+      "points": 62,
+      "accessM": 39,
+      "streets": [
+        "Acceso al punto de origen",
+        "Calle José Antonio Rico Toro",
+        "Avenida General José Manuel Pando",
+        "Avenida América",
+        "Avenida Potosí",
+        "Calle Beni",
+        "Calle sin nombre",
+        "Avenida General José Manuel Pando",
+        "Pasaje Tupiza 1",
+        "Acceso al destino"
+      ]
+    },
+    {
+      "restaurant": "r6",
+      "to": "cliente",
+      "km": 2.73,
+      "points": 157,
+      "accessM": 39,
+      "streets": [
+        "Acceso al punto de origen",
+        "Calle José María Santiváñez",
+        "Avenida Ayacucho",
+        "Avenida Heroínas de la Coronilla",
+        "Avenida General José de San Martín",
+        "Plaza Cristobal Colón",
+        "Calle Coronel Eduardo Paccieri",
+        "Avenida Daniel Salamanca",
+        "Plaza Constitución",
+        "Avenida Daniel Salamanca",
+        "Plazuela Carlos Quintanilla",
+        "Avenida Oquendo",
+        "Rotonda Reintegración Marítima",
+        "Avenida Oquendo",
+        "Plaza Ubaldo Anze",
+        "Avenida General José Manuel Pando",
+        "Pasaje Tupiza 1",
+        "Acceso al destino"
+      ]
+    }
+  ],
+  "syntax": {
+    "appAndTests": 45,
+    "leaflet": 1
+  },
+  "browserVisual": "Pendiente: el navegador de herramientas rechaza file://"
+}

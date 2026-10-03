@@ -6,7 +6,7 @@ Abre **index.html con doble clic**. La aplicación arranca automáticamente, pre
 
 ## Para qué sirve
 
-Permite recorrer y entender el proceso de delivery de extremo a extremo: elegir comida, crear un pedido, aprobar o rechazar el pago, gestionar la cocina, asignar un repartidor, moverlo sobre una ruta y confirmar la entrega. También permite observar las solicitudes, los eventos, sus consumidores, reintentos y fallos.
+Permite recorrer y entender el proceso de delivery de extremo a extremo: elegir comida, crear un pedido, aprobar o rechazar el pago, gestionar la cocina, asignar un repartidor, moverlo sobre una ruta calculada por calles reales y confirmar la entrega. También permite observar las solicitudes, los eventos, sus consumidores, reintentos y fallos.
 
 Los restaurantes y repartidores iniciales son ficticios. Los sectores están contextualizados a Cochabamba. Los indicadores comienzan en cero y se calculan con los pedidos, pagos y eventos creados en esta aplicación.
 
@@ -31,15 +31,15 @@ El selector cambia el contexto del actor para observar todo el proceso sin login
 5. **PaymentService:** registra `payment.processing` y luego `payment.approved` o `payment.rejected`. Un pago rechazado conserva el carrito y deja el pedido con su estado de rechazo.
 6. **OrderService:** con el pago aprobado publica `order.created`. Todos los eventos de ese pedido usan el mismo `correlationId`.
 7. **Restaurante:** selecciona el establecimiento donde compraste. El consumidor de `q.restaurant.orders` recibe el evento y el pedido aparece. Pulsa Aceptar → Iniciar preparación → Pedido listo. Cada paso valida la transición y publica su evento.
-8. **DispatchService:** consume `order.ready`, cambia a búsqueda y ordena los repartidores disponibles por distancia al restaurante. Envía una oferta al más cercano.
+8. **DispatchService:** consume `order.ready`, cambia a búsqueda y ordena los repartidores elegibles por distancia vial al restaurante, comprobando también conexión al destino. Envía una oferta al más cercano.
 9. **Repartidor:** selecciona el nombre marcado con Nueva oferta. Acepta. Si rechaza, se ofrece al siguiente disponible; si no quedan candidatos, el pedido permanece en búsqueda hasta que haya uno elegible.
-10. **Ruta al restaurante:** inicia el recorrido. El punto se mueve sobre segmentos continuos. Cuando llega, se habilita Pedido recogido.
+10. **Ruta al restaurante:** inicia el recorrido. El punto se mueve sobre la geometría de calles descargada de OpenStreetMap. Cuando llega, se habilita Pedido recogido.
 11. **Ruta al cliente:** pulsa Iniciar ruta al cliente. Cambia a En camino. Al alcanzar el 86% publica `delivery.arriving`.
 12. **Cliente / Operaciones:** cambia de vista para observar posición, progreso, distancia y ETA. La animación continúa mientras cambias de vista.
 13. **Confirmar entrega:** al llegar al destino, se habilita la entrega. El pedido queda DELIVERED; el repartidor vuelve a AVAILABLE y acumula entrega y ganancia. Todos los paneles consultan el mismo estado.
 14. **Historial:** revisa el detalle y descarga el comprobante local. El centro de notificaciones permite alternar leída/no leída.
 
-Cada tramo dura aproximadamente 24 segundos de reproducción activa para poder observar el proceso en una presentación. La ETA se estima con la distancia restante y una velocidad de referencia de 18 km/h; no representa un cálculo de tráfico en vivo. Al pausar o recargar, se conserva el último punto guardado. Un navegador en segundo plano puede ralentizar la animación.
+La duración depende de la distancia vial. La referencia es 24 km/h en moto y 12 km/h en bicicleta. En Repartidor puedes elegir **1×, 10× o 30×**; el ritmo inicial es 10× para observar el funcionamiento. La ETA usa distancia restante y velocidad de referencia, sin tráfico en vivo. El ritmo acelera la reproducción, no la velocidad utilizada en la ETA. Pausar o recargar conserva el último punto guardado; el tiempo con la aplicación cerrada no avanza el recorrido.
 
 ## Cómo entender las seis vistas
 
@@ -106,9 +106,13 @@ Cancelar un pedido, rechazarlo desde el restaurante o reportar entrega fallida r
 - La clave principal es `llajtavoy.state.v1`. Recargar conserva el catálogo, carrito, pedidos, pagos, posiciones, eventos, entregas del broker y notificaciones.
 - Los navegadores deciden cómo almacenar datos en `file://`. Usa el mismo navegador y la misma ruta de archivo; otros perfiles, modo privado o mover la carpeta pueden mostrar otra sesión.
 - Si localStorage está bloqueado o lleno, el sistema continúa en memoria y muestra un aviso. Exporta desde Operaciones antes de cerrar. Un registro corrupto se conserva en una clave `.recovery` cuando el almacenamiento lo permite.
-- Al abrir por doble clic (`file://`), todos los mapas usan el esquema local integrado de Cochabamba: sectores, restaurantes, repartidores, destino y recorrido. No se solicitan tiles externos. OpenStreetMap puede responder con imágenes de acceso bloqueado a una página local; esas imágenes no son errores de carga detectables por Leaflet.
-- Si se sirve opcionalmente desde HTTP/HTTPS, el mapa conectado usa Leaflet y tiles de OpenStreetMap. Si no hay librería, tiles o conexión, aparece el esquema local. En ese contexto puedes elegir Usar mapa local desde Operaciones. Un servidor nunca es necesario para ejecutar el sistema.
-- Los recorridos son polilíneas esquemáticas propias, no rutas calculadas por una API vial. No representan giros, restricciones o tráfico reales.
+- Todos los mapas usan **Leaflet incluido en la carpeta y cartografía vectorial real de Cochabamba**, tanto por doble clic como sin conexión. No se solicitan imágenes de tiles ni un servicio de mapas al ejecutar la aplicación.
+- Puedes arrastrar, ampliar con rueda/pellizco y botones, explorar con teclado, pulsar **Ver todo**, **Ampliar** o **Seguir** al repartidor. Arrastrar el mapa desactiva el seguimiento para permitir exploración libre. El centro y zoom se conservan al actualizar las vistas.
+- En **Cliente → Ubicación**, haz clic en un punto o arrastra el pin. Seleccionar no reconstruye el mapa. Las coordenadas deben estar dentro de la cobertura y cerca de una calle utilizable.
+- Las rutas se calculan localmente sobre la red vial OSM, con sentidos únicos, rotondas y restricciones básicas por vehículo registradas en el extracto. La línea azul sigue calles; los accesos cortos a la dirección aparecen discontinuos. Cada acceso puede medir como máximo 350 m y no constituye una ruta vial verificada.
+- La cobertura incluida comprende Centro, Recoleta, Cala Cala y Queru Queru, entre latitudes -17.413/-17.355 y longitudes -66.194/-66.129. El sistema rechaza destinos fuera de esa cobertura o sin conexión, en vez de inventar una ruta. No es navegación comercial ni contiene tráfico, cierres, todos los giros restringidos o GPS externo en vivo.
+- Las rutas antiguas activas se recalculan desde su último punto al recargar; no se borran los pedidos. Si no existe una conexión válida, se detiene ese recorrido y se muestra el motivo.
+- Si falla la librería local, existe un respaldo SVG con la misma red vial, arrastre, rueda, botones y teclado. Consulta **[docs/mapas.md](docs/mapas.md)** para fuentes, licencia, algoritmo y límites.
 - Turf es opcional para calcular el punto interpolado; existe una interpolación propia. Chart.js es opcional; existe un gráfico HTML/CSS. Los iconos Material Symbols tienen un respaldo SVG local y los modales son nativos.
 - Los scripts locales son clásicos y no utilizan `fetch` de JSON ni ES Modules. Los datos iniciales están en `js/seed-data.js`.
 - Exportar respaldo descarga todo el estado como JSON. No existe importación automática de respaldos en la interfaz. Eventos y requests crecen con el uso; la cuota de almacenamiento del navegador es finita.
@@ -126,7 +130,7 @@ Ve a **Operaciones → Restablecer escenario**. La aplicación pide confirmació
 | `js/core/` | Persistencia, EventBus, gateway, broker, eventos, estados y router |
 | `js/services/` | Catálogo, restaurante, pedidos, pagos, despacho, repartidores, tracking, notificaciones, analytics y auditoría |
 | `js/views/` | Inicio y las seis experiencias |
-| `js/maps/` | Cochabamba, rutas, esquema de respaldo y Leaflet |
+| `js/maps/` | Cartografía local OSM, red vial, rutas y gestor interactivo |
 | `js/ui/` | Iconos, modales, descargas, avisos, timeline y gráficos |
 | `assets/images/` | Identidad e ilustraciones SVG locales |
 | `docs/` | Arquitectura, middleware, catálogo de eventos y flujo |
@@ -136,6 +140,6 @@ Ve a **Operaciones → Restablecer escenario**. La aplicación pide confirmació
 
 No hay delivery, cobros, infraestructura de mensajería, autenticación ni GPS de repartidores externos conectados. La ubicación del cliente puede venir de geolocalización con su permiso; el recorrido del repartidor avanza sobre puntos locales. Para operación multiusuario real son necesarios backend, autenticación, autorización de servidor, proveedor de pagos y dispositivos de repartidores, además de infraestructura de mensajería.
 
-La aplicación necesita JavaScript y un navegador moderno con `<dialog>` y `requestAnimationFrame`. La geolocalización puede estar bloqueada al abrir archivos locales; siempre puedes elegir el punto manualmente. Los recursos externos solo aportan mapa, fuente, iconos y gráficos: el funcionamiento central es local.
+La aplicación necesita JavaScript y un navegador moderno con `<dialog>` y `requestAnimationFrame`. La geolocalización puede estar bloqueada al abrir archivos locales; siempre puedes elegir el punto manualmente. Los recursos externos opcionales aportan fuente, iconos y gráficos: el funcionamiento central es local.
 
 Consulta **tests/VALIDACION.md** para distinguir lo comprobado automáticamente de la verificación visual pendiente. El navegador integrado de Codex bloqueó `file://` y no se eludió esa política.

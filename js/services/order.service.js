@@ -10,6 +10,7 @@
       if (DB.state.unavailable.includes('PaymentService')) L.fail('PaymentService no disponible',503);
       const restaurant = L.services.CatalogService.restaurant(data.restaurantId); if (!restaurant.open) L.fail('El restaurante está cerrado',409);
       const items = data.items.map(item => { const p = DB.state.products.find(p => p.id === item.productId && p.restaurantId === restaurant.id && p.available); if (!p || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 50) L.fail('Producto o cantidad inválida',422); return { productId: p.id, name: p.name, quantity: item.quantity, price: p.price }; });
+      L.maps.Routes.plan([restaurant.lat,restaurant.lng],[data.lat,data.lng]);
       const subtotal = items.reduce((n,i) => n+i.price*i.quantity,0);
       const order = { id: 'CB-'+(++DB.state.sequence), customerId: context.customerId, customerName: data.customerName.trim(), restaurantId: restaurant.id, restaurantName: restaurant.name, items, subtotal, delivery: restaurant.delivery, total: subtotal+restaurant.delivery, address: data.address.trim(), notes: (data.notes || '').slice(0,500), lat: data.lat, lng: data.lng, paymentMethod: data.paymentMethod, correlationId: L.id('corr-'), status: 'CREATED', driverId: null, offeredDriverId: null, rejectedDrivers: [], createdAt: L.now(), updatedAt: L.now(), history: [{ status: 'CREATED', timestamp: L.now() }], tracking: null };
       DB.saveOrder(order); SM.move(order,'PAYMENT_PENDING'); const p = L.services.PaymentService.process(order);
