@@ -8,11 +8,11 @@
       if (!elements.has(id)) elements.set(id,{ id, open:false, innerHTML:'', textContent:'', contains(node) { return node?.inView===true; }, close() { this.open=false; this.closed=true; } });
       return elements.get(id);
     };
-    const document = { activeElement:null,getElementById:getElement,querySelectorAll:() => [] };
+    const document = { activeElement:null,getElementById:getElement,querySelectorAll:() => [],querySelector:()=>null };
     const location = { hash:'' };
     const counters = { maps:0,charts:0 };
-    const LV = { core:{DatabaseService:{state:{unavailable:[]},persistent:true,getNotifications:() => []},ApiGateway:{}},ui:{button:() => '<button></button>',icon:() => '<svg></svg>',charts:{destroy() { counters.charts++; }}},maps:{MapManager:{destroy() { counters.maps++; }}},views:{},escape:String };
-    for (const key of ['home','cliente','restaurante','repartidor','operaciones','middleware','arquitectura']) LV.views[key] = { title:key,subtitle:key,id:key,render:() => '<section>'+key+'</section>',mount:() => key };
+    const LV = { core:{DatabaseService:{state:{unavailable:[],payments:[]},persistent:true,getNotifications:() => [],getOrders:()=>[],getDrivers:()=>[]},ApiGateway:{}},services:{CommunicationService:{}},ui:{inbox:()=>'',roleIntro:()=>'',button:() => '<button></button>',icon:() => '<svg></svg>',charts:{destroy() { counters.charts++; }}},maps:{MapManager:{destroy() { counters.maps++; }}},views:{},escape:String };
+    for (const key of ['home','cliente','restaurante','repartidor','operaciones','middleware','arquitectura','pagos']) LV.views[key] = { title:key,subtitle:key,id:key,render:() => '<section>'+key+'</section>',mount:() => key };
     const window = { LlajtaVoy:LV,location,scrollTo(options) { this.scroll=options; },addEventListener(name,fn) { handlers.set(name,fn); } };
     const assert = (name,value) => { if (!value) throw new Error(name); results.push({name,status:'PASS'}); };
     eval(routerSource);
@@ -31,6 +31,7 @@
     document.activeElement={tagName:'TEXTAREA',inView:true,blur() { document.activeElement=null; }};
     const renderedBefore=counters.maps; LV.app.render();
     assert('Las actualizaciones de fondo conservan la edición del formulario',counters.maps===renderedBefore && document.activeElement!==null);
+    LV.core.Router.navigate('pagos',false);assert('Pagos selecciona el actor del proveedor en su propia vista',LV.app.context().actor==='payment-provider' && LV.app.context().providerId==='local-payment-provider' && getElement('page-title').textContent==='pagos');
     return results;
   };
 })();

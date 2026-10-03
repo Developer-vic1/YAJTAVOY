@@ -6,10 +6,22 @@ Abre `index.html` con doble clic. La cartografía y Leaflet 1.9.4 son archivos l
 
 1. Arrastra el fondo para mover el mapa. Usa rueda, doble clic, botones +/− o pellizco para ampliar. Con foco en el mapa, las flechas permiten desplazamiento.
 2. **Ver todo** encuadra los puntos y el recorrido. **Ampliar** ocupa la ventana; **Cerrar** o Escape vuelve al panel.
-3. **Seguir** centra al repartidor durante el avance. Arrastrar el mapa desactiva esa opción. Los cambios de estado conservan el centro y zoom; un nuevo tramo recibe su encuadre inicial.
-4. En Cliente, abre Ubicación. Haz clic o arrastra el pin de destino. Elegir un punto conserva la vista actual. Guardar verifica cobertura y proximidad a una calle utilizable; el pedido comprueba conexión desde el restaurante.
+3. **Seguir repartidor** se activa por defecto en cada tramo y centra la posición simulada. Arrastrar el mapa desactiva esa opción. Los cambios de estado conservan el centro y zoom; un nuevo tramo recibe zoom 16 y seguimiento activo. La cámara actualiza como máximo cada 250 ms. Ver todo permite explorar sin seguimiento.
+4. En Cliente, abre Ubicación. Haz clic o arrastra el pin de destino. Elegir un punto conserva la vista actual. Guardar verifica cobertura; crear el pedido comprueba proximidad a una calle utilizable y conexión desde el restaurante.
 5. En Repartidor, acepta la oferta e inicia el tramo al restaurante. Pausa/reanuda y selecciona **1×, 10× o 30×**. Tras llegar y recoger, inicia el tramo al cliente. Se habilita confirmar entrega al completar el recorrido.
-6. La línea azul indica calles; las conexiones discontinuas marrones indican accesos aproximados al punto exacto. El panel muestra calle actual, lista de calles, distancia, progreso y ETA. La escala métrica del mapa cambia con el zoom.
+6. La línea azul indica el tramo activo, la verde el recorrido realizado sobre los vértices reales de la ruta; las conexiones discontinuas marrones indican accesos aproximados al punto exacto. El panel muestra calle actual, lista de calles, distancia, progreso y ETA. La escala métrica del mapa cambia con el zoom.
+
+## Supervisión de operaciones
+
+El mapa de flota muestra cocinas, destinos y repartidores libres, desconectados, con oferta o en reparto. Las rutas previstas son discontinuas; las activas tienen una animación de flujo y un rastro verde. Los pins y rutas ofrecen detalles al pasar el cursor o al tocarlos. Sus botones permiten seleccionar una entrega o contactar a un actor mediante mensajes locales. Al ampliar se recalcula el encuadre territorial para aprovechar la nueva ventana; el zoom mínimo se ajusta al tamaño del mapa. Territorio encuadra la cobertura disponible y Panel oculta/muestra los datos flotantes.
+
+Sin pedidos, hay una flota disponible y una indicación de cómo activar el despacho; no se dibujan entregas inexistentes. La cobertura es la del extracto indicado abajo, no todo el municipio.
+
+## Parámetros del seguimiento
+
+`TrackingService.parameters`: `source: 'simulation'`, `followDriver: true`, `followIntervalMs: 250`, `followZoom: 16`, `positionIntervalMs: 750`, `staleAfterMs: 10000`. El panel distingue actividad, pausa, llegada, pedido cerrado y falta de actualización reciente. Cada muestra publica hora, secuencia, rumbo, coordenadas, progreso, distancia y ETA. El rastro deriva de los puntos originales y termina en la posición actual; no conecta muestras con atajos rectos.
+
+El usuario eligió **solo demostración con seguimiento automático**. No se activa GPS real del repartidor. La referencia de interacción es el mapa, ETA y etapas descritos por la [aplicación oficial de PedidosYa](https://apps.apple.com/bo/app/pedidosya-comida-a-domicilio/id490099807); no se usa su infraestructura ni datos privados.
 
 ## Datos y licencias
 

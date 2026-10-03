@@ -2,7 +2,7 @@
 
 **Delivery conectado para Cochabamba.**
 
-Abre **index.html con doble clic**. La aplicación arranca automáticamente, presenta su dashboard y permite recorrer Cliente, Restaurante, Repartidor, Operaciones, Middleware y Arquitectura desde un selector permanente. No requiere instalación, terminal, compilación ni servidor.
+Abre **index.html con doble clic**. La aplicación arranca automáticamente, presenta su dashboard y permite recorrer Cliente, Restaurante, Repartidor, Operaciones, Middleware, Arquitectura y Pagos desde un selector permanente. No requiere instalación, terminal, compilación ni servidor.
 
 ## Para qué sirve
 
@@ -18,7 +18,7 @@ Los restaurantes y repartidores iniciales son ficticios. Los sectores están con
 | Restaurante | Administrar el menú y aceptar, rechazar o preparar pedidos | Establecimiento seleccionado y sus pedidos |
 | Repartidor | Declarar disponibilidad, recibir y aceptar ofertas, recorrer rutas | Repartidor seleccionado, ofertas y entregas asignadas |
 | Administrador | Gestionar altas, incidentes, operación, escenarios y auditoría | Operaciones, Middleware y Arquitectura; acciones administrativas registradas |
-| Proveedor de pagos | Procesar transacciones y comunicar sus estados | Componente local identificado ante PaymentService |
+| Proveedor de pagos | Procesar transacciones y comunicar sus estados | Vista Pagos; transacciones del proveedor local, sin direcciones ni nombres de clientes |
 
 El selector cambia el contexto del actor para observar todo el proceso sin login. El gateway valida las acciones y recursos de ese contexto. **Esto no es autenticación ni aislamiento de seguridad de servidor**: el propietario del navegador puede inspeccionar y alterar los scripts y localStorage. El proveedor local no realiza un intercambio autenticado con un servicio externo; esa integración queda fuera del sistema local.
 
@@ -41,15 +41,25 @@ El selector cambia el contexto del actor para observar todo el proceso sin login
 
 La duración depende de la distancia vial. La referencia es 24 km/h en moto y 12 km/h en bicicleta. En Repartidor puedes elegir **1×, 10× o 30×**; el ritmo inicial es 10× para observar el funcionamiento. La ETA usa distancia restante y velocidad de referencia, sin tráfico en vivo. El ritmo acelera la reproducción, no la velocidad utilizada en la ETA. Pausar o recargar conserva el último punto guardado; el tiempo con la aplicación cerrada no avanza el recorrido.
 
-## Cómo entender las seis vistas
+## Vistas según la función de cada actor
 
 - **Inicio:** situación general, acceso a todas las vistas, mapa y actividad reciente.
 - **Cliente:** catálogo, búsqueda por nombre/categoría/zona, categorías, menú, cantidades, carrito, dirección, métodos de pago, tracking, historial, comprobante y notificaciones.
-- **Restaurante:** selector de establecimiento, pedidos nuevos y en preparación, entregas en curso, historial, estadísticas, alta de productos, cambio de precio, agotados y apertura/cierre.
-- **Repartidor:** selector de repartidor, disponibilidad, oferta, rechazo o aceptación, dos tramos de ruta, pausa, recogida, entrega y reporte de fallo.
-- **Operaciones:** pedidos por hora, estados y eventos; indicadores derivados; mapa y tabla; altas de restaurantes/repartidores, incidentes, respaldo y restablecimiento.
+- **Restaurante:** selector de establecimiento, pedidos nuevos y en preparación, entregas en curso, historial, estadísticas, alta de productos, cambio de precio, agotados y apertura/cierre; etapas animadas y seguimiento de sus pedidos.
+- **Repartidor:** selector de repartidor, disponibilidad, oferta, rechazo o aceptación, dos tramos de ruta, pausa, recogida, entrega y reporte de fallo; mensajes a cocina, cliente de la entrega y operaciones.
+- **Operaciones:** pedidos por hora, estados y eventos; indicadores derivados; mapa de flota con rutas activas/previstas, destinos, libres/ocupados, contactos y seguimiento seleccionado; altas de restaurantes/repartidores, incidentes, respaldo y restablecimiento.
 - **Middleware:** requests con actor y Request ID, rate limit, topología, colas, ACK/NACK/retry/DLQ, JSON y filtro por evento o correlation ID.
 - **Arquitectura:** componentes seleccionables con responsabilidades, operaciones y eventos. Incluye la tabla de actores y los límites del sistema local.
+
+- **Pagos:** aprobación, rechazo, reembolso, referencias y notificaciones del proveedor local. El procesamiento es automático; no hay botones de cocina, despacho ni gestión de clientes.
+
+## Mensajes y avisos locales
+
+Cliente, restaurante y repartidor tienen una bandeja propia. Durante una entrega activa pueden comunicarse con los actores vinculados a ese pedido y con Operaciones. Operaciones puede contactar a las cocinas y repartidores, incluso libres, desde los pins del mapa. El proveedor de pagos recibe eventos de transacción y no accede a estos mensajes personales.
+
+Pulsa **Mensaje al repartidor**, **Mensaje a la cocina**, **Mensaje al cliente** o **Contactar operaciones**, escribe hasta 500 caracteres y envía. Cambia al rol y a la identidad del destinatario: el mensaje aparece en su bandeja, puede marcarlo leído y responder. La lectura se actualiza también para el remitente. Los avisos del encabezado dependen del actor seleccionado. Los mensajes directos de una entrega cerrada no admiten nuevos envíos; el contacto con Operaciones sigue disponible.
+
+Estos mensajes se guardan en el mismo navegador; no llegan a teléfonos ni a una aplicación externa. El gateway registra las acciones y aplica el alcance por actor/pedido. Se conservan al recargar y se eliminan al restablecer.
 
 ## Arquitectura y funcionamiento interno
 
@@ -91,11 +101,13 @@ En Operaciones o Middleware usa Control de escenarios:
 | Forzar Retry | Fallan los dos primeros intentos de auditoría | Dos NACK y dos Retry; tercer intento ACK |
 | Enviar a DLQ | Fallan tres intentos de auditoría | Error, tres intentos y mensaje en DLQ |
 | Reprocesar | Recupera una entrega de DLQ sin volver a publicar el evento | Mensaje pasa a READY y luego ACK |
-| Generar ráfaga | Realiza 65 requests administrativos | Los que superan 60/min reciben 429 |
+| Generar ráfaga | Realiza 65 probes en una cuota aislada | 60 permitidos y 5 bloqueados (429), sin consumir la cuota de las altas |
 | Servicio no disponible | Desactiva el servicio elegido en el gateway/consumidor | Requests 503 o reintentos y DLQ del consumidor afectado |
 | Restaurar servicio | Quita el fallo configurado | Nuevos requests vuelven a funcionar; DLQ se reprocesa manualmente |
 
-La cuota de requests es independiente por actor/recurso y usa una ventana móvil de 60 segundos. Si una ráfaga limita al administrador, espera un minuto antes de realizar otra acción administrativa. Los requests bloqueados también se registran.
+La cuota regular usa una ventana móvil de 60 segundos por actor e identidad. **La ráfaga tiene su propia cuota**: puede repetirse y conserva los controles administrativos. Restaurar servicios y reprocesar DLQ usan una cuota separada de recuperación; restablecer no queda bloqueado por la cuota, incluso si una sesión antigua ya estaba limitada. El permiso de administrador sigue siendo obligatorio y las acciones se auditan. Una operación regular limitada indica cuántos segundos faltan para reintentar; los requests bloqueados también se registran.
+
+El error observado al confirmar Restablecer era causado por la antigua ráfaga: consumía los 60 requests del mismo administrador que necesitaba restablecer. La separación de cuotas y el acceso de recuperación corrigen esa causa.
 
 Los reintentos del broker tienen espera creciente de 400 y 800 ms. Son **tres intentos totales**, no tres reintentos adicionales. La notificación, auditoría y analytics son idempotentes por Event ID. Los consumidores reanudan los mensajes pendientes al recargar.
 
@@ -103,12 +115,13 @@ Cancelar un pedido, rechazarlo desde el restaurante o reportar entrega fallida r
 
 ## Persistencia, mapas y respaldo
 
-- La clave principal es `llajtavoy.state.v1`. Recargar conserva el catálogo, carrito, pedidos, pagos, posiciones, eventos, entregas del broker y notificaciones.
+- La clave principal es `llajtavoy.state.v1`. Recargar conserva el catálogo, carrito, pedidos, pagos, posiciones, eventos, entregas del broker, mensajes locales y notificaciones.
 - Los navegadores deciden cómo almacenar datos en `file://`. Usa el mismo navegador y la misma ruta de archivo; otros perfiles, modo privado o mover la carpeta pueden mostrar otra sesión.
 - Si localStorage está bloqueado o lleno, el sistema continúa en memoria y muestra un aviso. Exporta desde Operaciones antes de cerrar. Un registro corrupto se conserva en una clave `.recovery` cuando el almacenamiento lo permite.
 - Todos los mapas usan **Leaflet incluido en la carpeta y cartografía vectorial real de Cochabamba**, tanto por doble clic como sin conexión. No se solicitan imágenes de tiles ni un servicio de mapas al ejecutar la aplicación.
-- Puedes arrastrar, ampliar con rueda/pellizco y botones, explorar con teclado, pulsar **Ver todo**, **Ampliar** o **Seguir** al repartidor. Arrastrar el mapa desactiva el seguimiento para permitir exploración libre. El centro y zoom se conservan al actualizar las vistas.
-- En **Cliente → Ubicación**, haz clic en un punto o arrastra el pin. Seleccionar no reconstruye el mapa. Las coordenadas deben estar dentro de la cobertura y cerca de una calle utilizable.
+- Puedes arrastrar, ampliar con rueda/pellizco y botones, explorar con teclado, pulsar **Ver todo**, **Ampliar** o **Seguir repartidor**. La cámara sigue al repartidor por defecto en cada nuevo tramo; arrastrar desactiva ese seguimiento para explorar. El centro, zoom y esa elección se conservan al actualizar las vistas. El panel muestra hora de la última posición, pausa/llegada/demora, rumbo y secuencia de actualizaciones; todos son datos simulados. La línea verde conserva el recorrido realizado sobre las curvas de la ruta.
+- En **Operaciones → Territorio y flota**, pasa el cursor o toca los pins para ver estados y destinos. Pulsa una ruta o pin para seleccionar **Seguir entrega** o enviar un mensaje. **Ampliar** recalcula el encuadre para el nuevo tamaño; **Territorio** muestra la cobertura cargada y **Panel** oculta/muestra la información de flota. No se inventan rutas cuando no existen pedidos: el panel explica cómo activarlas.
+- En **Cliente → Ubicación**, haz clic en un punto o arrastra el pin. Seleccionar no reconstruye el mapa. Las coordenadas deben estar dentro de la cobertura; al crear el pedido se comprueban proximidad a una calle utilizable y conexión desde el restaurante.
 - Las rutas se calculan localmente sobre la red vial OSM, con sentidos únicos, rotondas y restricciones básicas por vehículo registradas en el extracto. La línea azul sigue calles; los accesos cortos a la dirección aparecen discontinuos. Cada acceso puede medir como máximo 350 m y no constituye una ruta vial verificada.
 - La cobertura incluida comprende Centro, Recoleta, Cala Cala y Queru Queru, entre latitudes -17.413/-17.355 y longitudes -66.194/-66.129. El sistema rechaza destinos fuera de esa cobertura o sin conexión, en vez de inventar una ruta. No es navegación comercial ni contiene tráfico, cierres, todos los giros restringidos o GPS externo en vivo.
 - Las rutas antiguas activas se recalculan desde su último punto al recargar; no se borran los pedidos. Si no existe una conexión válida, se detiene ese recorrido y se muestra el motivo.
@@ -119,7 +132,7 @@ Cancelar un pedido, rechazarlo desde el restaurante o reportar entrega fallida r
 
 ## Restablecer el proceso
 
-Ve a **Operaciones → Restablecer escenario**. La aplicación pide confirmación. Elimina pedidos, pagos, notificaciones, eventos, colas y métricas, detiene las rutas y reinicia los repartidores. Conserva el catálogo actual, incluyendo cambios de menú y altas de restaurantes. El request de restablecimiento queda como nueva entrada de auditoría del gateway. Exporta antes si necesitas conservar la sesión.
+Ve a **Operaciones → Restablecer escenario**. La aplicación pide confirmación. Elimina pedidos, pagos, notificaciones, mensajes locales, eventos, colas y métricas, detiene las rutas y reinicia los repartidores. Conserva el catálogo actual, incluyendo cambios de menú y altas de restaurantes. El request de restablecimiento queda como nueva entrada de auditoría del gateway. Exporta antes si necesitas conservar la sesión.
 
 ## Archivos principales
 
@@ -128,8 +141,8 @@ Ve a **Operaciones → Restablecer escenario**. La aplicación pide confirmació
 | `index.html` | Único punto de entrada, shell y orden de scripts |
 | `css/` | Paleta, layout, responsive, componentes, animaciones y estilos de vistas |
 | `js/core/` | Persistencia, EventBus, gateway, broker, eventos, estados y router |
-| `js/services/` | Catálogo, restaurante, pedidos, pagos, despacho, repartidores, tracking, notificaciones, analytics y auditoría |
-| `js/views/` | Inicio y las seis experiencias |
+| `js/services/` | Catálogo, restaurante, pedidos, pagos, despacho, repartidores, tracking, notificaciones, analytics, auditoría y comunicación local |
+| `js/views/` | Inicio y siete vistas de actores/herramientas |
 | `js/maps/` | Cartografía local OSM, red vial, rutas y gestor interactivo |
 | `js/ui/` | Iconos, modales, descargas, avisos, timeline y gráficos |
 | `assets/images/` | Identidad e ilustraciones SVG locales |

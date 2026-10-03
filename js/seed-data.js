@@ -24,6 +24,6 @@
     ],
     zones: [ { name: 'Centro', lat: -17.3935, lng: -66.157 }, { name: 'Queru Queru', lat: -17.371, lng: -66.153 }, { name: 'Cala Cala', lat: -17.373, lng: -66.171 }, { name: 'Recoleta', lat: -17.378, lng: -66.151 } ],
     customer: { name: 'Andrea', address: 'Avenida Santa Cruz, Recoleta', lat: -17.378, lng: -66.151, accuracy: null },
-    orders: [], payments: [], notifications: [], events: [], messages: [], requests: [], metrics: [], audit: [], offerInbox: [], paymentReceipts: [], cart: [], flags: {}, unavailable: [], rateWindows: {}, mapMode: 'auto'
+    communications: [], orders: [], payments: [], notifications: [], events: [], messages: [], requests: [], metrics: [], audit: [], offerInbox: [], paymentReceipts: [], cart: [], flags: {}, unavailable: [], rateWindows: {}, mapMode: 'auto'
   });
 })(window.LlajtaVoy);

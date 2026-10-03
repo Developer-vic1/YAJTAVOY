@@ -1,32 +1,47 @@
 (function (L) {
   'use strict';
   const DB = L.core.DatabaseService; const routes = [];
-  const actorKey = c => c.actor + ':' + (c.customerId || c.restaurantId || c.driverId || 'admin');
+  const actorKey = c => c.actor + ':' + (c.customerId || c.restaurantId || c.driverId || c.providerId || 'admin');
   const gateway = L.core.ApiGateway = {
     routes, limit: 60,
     route(method,pattern,service,handler,roles) { const names = []; const regex = new RegExp('^'+pattern.replace(/:([a-zA-Z]+)/g,(_,name) => { names.push(name); return '([^/]+)'; })+'$'); routes.push({ method,pattern,regex,names,service,handler,roles }); },
     authorizeOrder(id,c) { const o = DB.getOrder(id); const allowed = c.actor === 'admin' || (c.actor === 'client' && o.customerId === c.customerId) || (c.actor === 'restaurant' && o.restaurantId === c.restaurantId) || (c.actor === 'driver' && (o.driverId === c.driverId || o.offeredDriverId === c.driverId)); if (!allowed) L.fail('Este pedido no pertenece al actor seleccionado',403); return o; },
     async request(method,endpoint,data = {},context = {}) {
       const requestId = L.id('req-'), start = performance.now(); const record = { requestId, method, endpoint, service: 'Gateway', timestamp: L.now(), actor: context.actor || 'unknown', actorId: actorKey(context), status: 0, latency: 0 }; let result; let caught;
-      try { const key = actorKey(context); const now = Date.now(); const window = (DB.state.rateWindows[key] || []).filter(t => now-t < 60000); DB.state.rateWindows[key] = window; if (window.length >= this.limit) L.fail('429 Too Many Requests. Intenta nuevamente después de un minuto.',429); window.push(now);
+      try {
         const route = routes.find(r => r.method === method && r.regex.test(endpoint)); if (!route) L.fail('Ruta no encontrada',404); record.service = route.service;
         if (!route.roles.includes(context.actor)) L.fail('El actor no tiene permiso para esta acción',403);
+        const recovery=context.actor==='admin' && (endpoint==='/api/admin/reset' || (endpoint==='/api/admin/scenario' && data.action==='restore') || endpoint.startsWith('/api/admin/dlq/'));
+        const group=endpoint==='/api/admin/probe'?'demo-burst':recovery?'recovery':'regular',key=actorKey(context)+(group==='regular'?'':':'+group),now=Date.now();
+        const window=(DB.state.rateWindows[key] || []).filter(t => now-t<60000);DB.state.rateWindows[key]=window;
+        record.quotaGroup=group;record.quotaKey=key;record.quotaLimit=this.limit;
+        // El reset de la demostración permanece disponible para recuperar una sesión limitada.
+        if (endpoint!=='/api/admin/reset' && window.length>=this.limit) { const retryAfterSeconds=Math.max(1,Math.ceil((window[0]+60000-now)/1000)); const error=new Error('Límite de solicitudes alcanzado. Reintenta en '+retryAfterSeconds+' s.');error.status=429;error.retryAfterSeconds=retryAfterSeconds;throw error; }
+        if (endpoint!=='/api/admin/reset') window.push(now); record.quotaUsed=window.length;
         if (DB.state.unavailable.includes(route.service)) L.fail(route.service + ' no disponible',503);
         const match = endpoint.match(route.regex), params = {}; route.names.forEach((n,i) => params[n] = match[i+1]); if (method!=='GET') record.operation = { resource:params.id || null, ...Object.fromEntries(['action','status','service','orderId','available','open','price'].filter(key => data[key]!=null).map(key => [key,data[key]])) }; result = await route.handler(params,data,context); record.status = method === 'POST' ? 201 : 200;
-      } catch (e) { record.status = e.status || 500; record.error = e.message; caught = e; }
+      } catch (e) { record.status = e.status || 500; record.error = e.message; if(e.retryAfterSeconds) record.retryAfterSeconds=e.retryAfterSeconds; caught = e; }
       record.latency = +(performance.now()-start).toFixed(2); DB.change(s => s.requests.push(record),'gateway:request');
       if (caught) { caught.requestId = requestId; throw caught; } return { status: record.status, data: result, requestId };
     },
+    async burst() { const key='admin:admin:demo-burst';DB.state.rateWindows[key]=[];let accepted=0,blocked=0;for(let i=0;i<65;i++) {try {await this.request('GET','/api/admin/probe',{}, {actor:'admin'});accepted++;}catch(error){if(error.status===429)blocked++;else throw error;}}const result={sent:65,accepted,blocked,timestamp:L.now()};DB.change(s=>{s.lastBurst=result;});return result; },
     init() {
       const all = ['client','restaurant','driver','admin'];
+      this.route('GET','/api/admin/probe','ApiGateway',() => ({probe:true}),['admin']);
+      this.route('POST','/api/admin/burst','ApiGateway',() => this.burst(),['admin']);
       this.route('GET','/api/restaurants','CatalogService',() => L.services.CatalogService.restaurants(),all);
       this.route('GET','/api/restaurants/:id','RestaurantService',p => L.services.CatalogService.restaurant(p.id),all);
       this.route('GET','/api/restaurants/:id/menu','CatalogService',p => L.services.CatalogService.menu(p.id),all);
+      this.route('GET','/api/messages','CommunicationService',(p,d,c)=>L.services.CommunicationService.list(c),all);
+      this.route('POST','/api/messages','CommunicationService',(p,d,c)=>L.services.CommunicationService.send(d,c),all);
+      this.route('PATCH','/api/messages/:id/read','CommunicationService',(p,d,c)=>L.services.CommunicationService.read(p.id,c),all);
       this.route('POST','/api/orders','OrderService',(p,d,c) => { if (!c.customerId) L.fail('Identidad de cliente requerida',403); return L.services.OrderService.create(d,c); },['client']);
       this.route('GET','/api/orders','OrderService',(p,d,c) => DB.getOrders().filter(o => c.actor === 'admin' || (c.actor === 'client' && o.customerId === c.customerId) || (c.actor === 'restaurant' && o.restaurantId === c.restaurantId) || (c.actor === 'driver' && (o.driverId === c.driverId || o.offeredDriverId === c.driverId))),all);
       this.route('GET','/api/orders/:id','OrderService',(p,d,c) => this.authorizeOrder(p.id,c),all);
       this.route('PATCH','/api/orders/:id/status','OrderService',(p,d,c) => { this.authorizeOrder(p.id,c); const permissions = { client: ['CANCELLED'], restaurant: ['ACCEPTED','RESTAURANT_REJECTED','PREPARING','READY_FOR_PICKUP'], driver: ['PICKED_UP','DELIVERED','DELIVERY_FAILED'], admin: ['CANCELLED','DELIVERY_FAILED'] }; if (!permissions[c.actor]?.includes(d.status)) L.fail('Cambio no autorizado para este actor',403); return L.services.OrderService.status(p.id,d.status); },all);
       this.route('POST','/api/payments','PaymentService',(p,d,c) => { if (c.providerId !== 'local-payment-provider') L.fail('Proveedor no autorizado',403); return L.services.PaymentService.process(DB.getOrder(d.orderId)); },['payment-provider']);
+      this.route('GET','/api/payments','PaymentService',(p,d,c) => L.services.PaymentService.list(c),['payment-provider','admin']);
+      this.route('GET','/api/payments/:id','PaymentService',(p,d,c) => {const payment=L.services.PaymentService.list(c).find(x=>x.id===p.id);if(!payment)L.fail('Transacción no encontrada para este proveedor',404);return payment;},['payment-provider','admin']);
       this.route('GET','/api/orders/:id/receipt','PaymentService',(p,d,c) => { this.authorizeOrder(p.id,c); return DB.state.payments.find(pay => pay.orderId === p.id); },['client','admin']);
       this.route('GET','/api/drivers','DriverService',(p,d,c) => c.actor === 'driver' ? DB.getDrivers().filter(driver => driver.id === c.driverId) : DB.getDrivers(),['driver','admin']);
       this.route('PATCH','/api/drivers/:id','DriverService',(p,d,c) => { if (c.actor === 'driver' && p.id !== c.driverId) L.fail('Solo puedes cambiar tu disponibilidad',403); return L.services.DriverService.availability(p.id,d.available); },['driver','admin']);
@@ -41,7 +56,7 @@
       this.route('POST','/api/admin/drivers','DriverService',(p,d) => { if (!d.name?.trim() || !d.vehicle?.trim()) L.fail('Completa nombre y vehículo',422); const driver = { id: L.id('d-'), name: d.name.trim(), vehicle: d.vehicle.trim(), lat: -17.3833, lng: -66.157, rating: null, deliveries: 0, status: 'AVAILABLE', orderId: null }; DB.change(s => s.drivers.push(driver)); L.services.DispatchService.scan(); return driver; },['admin']);
       this.route('POST','/api/products','CatalogService',(p,d,c) => { const r = L.services.CatalogService.restaurant(c.restaurantId || d.restaurantId); if (!d.name?.trim() || !Number.isFinite(Number(d.price)) || Number(d.price) <= 0) L.fail('Completa nombre y precio válido',422); const product = { id: L.id('p-'), restaurantId: r.id, name: d.name.trim(), description: d.description || 'Preparado al momento', price: Number(d.price), category: d.category || 'Platos', available: true }; DB.change(s => s.products.push(product)); return product; },['restaurant','admin']);
       this.route('POST','/api/admin/incident','AuditService',(p,d) => { if (!d.note?.trim()) L.fail('Describe el incidente',422); return L.core.EventBroker.publish('system.probe',{ incident: d.note.slice(0,500), orderId: d.orderId || null },'Administrador',d.orderId ? DB.getOrder(d.orderId).correlationId : null); },['admin']);
-      this.route('POST','/api/admin/scenario','AuditService',(p,d) => { const flagKeys = ['rejectPayment','failNotification','rejectOffer']; if (flagKeys.includes(d.action)) DB.change(s => { s.flags[d.action] = true; }); else if (['NACK','RETRY','DLQ'].includes(d.action)) { DB.change(s => { s.flags.brokerFault = d.action; }); L.core.EventBroker.publish('system.probe',{ action: d.action },'Administrador'); } else if (d.action === 'offline') DB.change(s => { if (!s.unavailable.includes(d.service)) s.unavailable.push(d.service); }); else if (d.action === 'restore') { DB.change(s => { s.unavailable = s.unavailable.filter(x => x !== d.service); }); L.core.EventBroker.pump(); } else L.fail('Escenario inválido',422); return { action: d.action }; },['admin']);
+      this.route('POST','/api/admin/scenario','AuditService',(p,d) => { if(['offline','restore'].includes(d.action) && !['OrderService','PaymentService','RestaurantService','DispatchService','NotificationService','TrackingService','CatalogService','DriverService','CommunicationService'].includes(d.service))L.fail('Selecciona un servicio válido',422); const flagKeys = ['rejectPayment','failNotification','rejectOffer']; if (flagKeys.includes(d.action)) DB.change(s => { s.flags[d.action] = true; }); else if (['NACK','RETRY','DLQ'].includes(d.action)) { DB.change(s => { s.flags.brokerFault = d.action; }); L.core.EventBroker.publish('system.probe',{ action: d.action },'Administrador'); } else if (d.action === 'offline') DB.change(s => { if (!s.unavailable.includes(d.service)) s.unavailable.push(d.service); }); else if (d.action === 'restore') { DB.change(s => { s.unavailable = s.unavailable.filter(x => x !== d.service); }); L.core.EventBroker.pump(); } else L.fail('Escenario inválido',422); return { action: d.action }; },['admin']);
       this.route('POST','/api/admin/dlq/:id','EventBroker',(p) => { L.core.EventBroker.reprocess(p.id); return { messageId: p.id }; },['admin']);
       this.route('POST','/api/admin/reset','DatabaseService',() => { DB.reset(); return { reset: true }; },['admin']);
     }

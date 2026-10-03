@@ -4,13 +4,13 @@ Cada evento contiene `eventId`, `exchange`, `routingKey`, `producer`, `correlati
 
 | Eventos | Productor | Contenido principal |
 | --- | --- | --- |
-| payment.processing, payment.approved, payment.rejected | PaymentService | Pago, pedido, monto, método y estado |
+| payment.processing, payment.approved, payment.rejected, payment.refunded | PaymentService | Pago, pedido, monto, método y estado |
 | order.created | OrderService | orderId |
 | order.accepted, order.rejected, order.preparing, order.ready, order.cancelled | OrderService | orderId, status |
 | driver.search.started, driver.offer.created | DispatchService | orderId, driverId cuando hay candidato |
 | driver.offer.accepted, driver.offer.rejected, driver.assigned | DriverService | orderId, driverId |
 | delivery.picked_up, delivery.on_route, delivery.arriving, delivery.delivered, delivery.failed | OrderService | orderId, status |
-| tracking.position.updated | TrackingService | orderId, lat, lng, progress, remainingKm, eta, leg |
+| tracking.position.updated | TrackingService | orderId, lat, lng, progress, remainingKm, eta, leg, source=simulation, sequence, heading, updatedAt |
 | notification.created, notification.sent, notification.failed | NotificationService | notificationId, orderId |
 | system.probe | Administrador | Acción de auditoría o incidente |
 

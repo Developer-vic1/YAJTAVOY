@@ -4,7 +4,7 @@ La aplicación carga scripts clásicos en orden bajo `window.LlajtaVoy`. Una sol
 
 Presentación → API Gateway → Servicios → Broker → Consumidores. Los servicios pueden llamar internamente a otros servicios, como OrderService a PaymentService, y coordinan la recepción de pedidos y el despacho mediante eventos. EventBus se ocupa exclusivamente de avisar al shell y actualizar la interfaz.
 
-Kong y RabbitMQ representan roles arquitectónicos; no están instalados ni conectados. El selector ofrece Cliente, Restaurante, Repartidor y tres herramientas de Administrador. El Proveedor de pagos es un actor interno local. El gateway verifica contexto y propiedad, pero sus controles de JavaScript no ofrecen seguridad de servidor.
+Kong y RabbitMQ representan roles arquitectónicos; no están instalados ni conectados. El selector ofrece Cliente, Restaurante, Repartidor y tres herramientas de Administrador. El Proveedor de pagos dispone de su propia vista Pagos; procesa automáticamente y consulta solo metadatos de sus transacciones. CommunicationService mantiene bandejas por actor y canales de entrega activa, con controles por gateway. El gateway verifica contexto y propiedad, pero sus controles de JavaScript no ofrecen seguridad de servidor.
 
 Cada pedido mantiene historial, `correlationId`, precios confirmados, pago y tramos de tracking. Los mensajes de cada consumidor tienen identidad propia, intentos, error e historial. Los consumidores idempotentes usan el Event ID; el registro de pedidos y el cambio de estados protegen transiciones repetidas.
 
@@ -12,4 +12,4 @@ La alternativa sin conexión cubre mapas SVG, iconos SVG, modales nativos y grá
 
 El gestor utiliza Leaflet y cartografía vectorial OSM incluidos localmente, también en file://. Los recorridos se calculan en un grafo dirigido de calles por vehículo; no hay solicitudes de tiles ni de rutas durante el uso. Mantiene encuadre, selección de destino, seguimiento y respaldo SVG interactivo. Fuentes, licencia y límites en [mapas.md](mapas.md).
 
-Referencia de la librería opcional: [Leaflet API](https://leafletjs.com/reference.html).
+Referencia de la librería de mapas incluida: [Leaflet API](https://leafletjs.com/reference.html).

@@ -1,48 +1,47 @@
-# Validación — mapa vial local, 2 de octubre de 2026
+# Validación — roles, flota y seguimiento, 3 de octubre de 2026
 
 ## Resultado actual
 
-**81 verificaciones JavaScript aprobadas**, registradas en `resultados-mapas.json`; además, **11 comprobaciones de estructura** mediante `python tests/static_check.py`. No se instalaron paquetes ni se ejecutó un servidor. Python se utiliza únicamente como herramienta de desarrollo: no es necesario para abrir `index.html`.
+**170 verificaciones JavaScript aprobadas**, registradas en [resultados-roles.json](resultados-roles.json), más **11 comprobaciones de estructura** mediante `python tests/static_check.py`. Se analizaron sin errores de sintaxis 52 fuentes de aplicación/pruebas y datos, más Leaflet 1.9.4 incluido. También pasó `git diff --check`.
 
-| Grupo | Casos | Qué se comprobó |
+| Grupo | Casos | Alcance |
 | --- | ---: | --- |
-| Núcleo (`core.spec.js`) | 32 | Flujo completo de pedido, pago, cocina, oferta/rechazo/asignación, recogida, llegada y entrega; permisos, estados, precios, correlación, persistencia, ACK/NACK/retry/DLQ, idempotencia, 503, cuota 60/min y reset |
-| Seguimiento (`tracking.spec.js`) | 7 | Ruta vial, velocidad explícita, ritmos válidos/inválidos, acceso del repartidor asignado, pausa/reanudación, migración del recorrido antiguo y rechazo de destino sin cambio parcial de estado |
-| Red vial (`routing.spec.js`) | 13 | 24 conexiones iniciales, geometría OSM real, sentidos/rotondas, accesos acotados, interpolación, extremos, distancia cero, cobertura, circuito de un sentido, vía privada y ciclovía |
-| Gestor de mapas (`maps.spec.js`) | 16 | Leaflet en file:// sin tiles, opciones de interacción, nueve marcadores, capas agrupadas, encuadre, clic/arrastre del destino, seguimiento, ampliación, gestos activos y respaldo SVG |
-| Navegación (`navigation.spec.js`) | 5 | Coordinación de hash/actor/render, foco y modal |
-| Generación de HTML | 8 | Las siete vistas iniciales y el panel de tracking con ritmo y calles |
+| Núcleo | 32 | Pedido completo, pago, cocina, ofertas, recogida, llegada, entrega, permisos, persistencia, correlación, ACK/NACK/retry/DLQ, idempotencia, 503 y cuota |
+| Tracking | 7 | Red vial, ritmo, repartidor asignado, pausa/reanudación, migración y destino inválido sin cambios parciales |
+| Red vial | 13 | 24 conexiones iniciales, geometría OSM, sentidos, accesos, interpolación, cobertura y perfiles |
+| Gestor de mapas | 24 | Interacciones instrumentadas, conservación de encuadre, seguimiento por defecto, cámara acotada, rastro, SVG, rutas/flota, popups/contactos y nuevo encuadre territorial al ampliar |
+| Navegación | 6 | Router/hash, cambio de actor, foco, modal y proveedor de pagos |
+| Roles y recuperación | 46 | Cuotas aisladas, recuperación de sesión 429, alcance de pedidos/pagos, reembolso, telemetría, estados cerrados y validaciones de campos/altas/servicios |
+| Comunicación | 14 | Contactos, respuestas, permisos de canal activo, bandeja privada, lectura, persistencia, cierre y reset |
+| Generación de HTML | 28 | Ocho vistas iniciales, fases de entrega, movimiento condicionado al estado y pestañas de cliente/restaurante sin datos ajenos |
 
-Los 45 scripts de aplicación/pruebas y el archivo vendorizado de Leaflet se analizaron sin errores de sintaxis. La librería corresponde a 1.9.4. Los casos funcionales usan almacenamiento aislado, reloj/frames instrumentados y datos de prueba independientes; no cambian el localStorage del usuario.
+Las pruebas JavaScript usan almacenamiento aislado, reloj/frames y, para mapas/navegación, DOM y API Leaflet instrumentados. No modifican el localStorage del usuario. Los casos están en `*.spec.js`; el evaluador de desarrollo carga los scripts clásicos en el orden de index.html. Estas comprobaciones no equivalen a una ejecución visual en navegador.
 
-La revisión estática comprueba referencias locales, scripts clásicos, ausencia de NPM, ausencia de fetch/import/localhost obligatorios, acciones con controlador, SVG locales, paleta, reduced-motion, responsive y documentación. También pasó `git diff --check`.
+## Correcciones
 
-## Evidencia de geometría
+- La ráfaga anterior consumía la misma cuota administrativa que Reset y causaba el 429 observado. Ahora sus 65 probes quedan aislados: 60 aprobados y 5 bloqueados. La recuperación continúa disponible y los permisos se mantienen.
+- El mapa ampliado conservaba el zoom del panel pequeño. Operaciones ahora recalcula el encuadre territorial y ajusta el zoom mínimo al tamaño de la ventana.
+- La flota tiene estados, destinos, rutas activas y previstas, rastro, detalles al pasar el cursor, seguimiento seleccionado y contactos locales.
+- Cada actor presenta sus funciones y datos; Pagos muestra transacciones y notificaciones sin direcciones. Los avisos del encabezado dependen del rol.
+- El tracking sigue por defecto cada nuevo tramo, permite explorar/recentrar y muestra fuente simulada, última posición, rumbo y secuencia. Preparación, movimiento, pausa y llegada tienen indicaciones acordes al estado.
+- Los mensajes locales verifican pertenencia a la entrega activa; operar otro actor no da acceso a las bandejas ajenas.
 
-`example-route.json` registra una ruta calculada de Centro a Recoleta de **2.34 km y 143 puntos**. La matriz de 18 trayectos repartidor→restaurante y 6 restaurante→cliente está en el reporte JSON. Para cada segmento de calle se comprobó que pertenece a la geometría de una vía OSM descargada y que cumple su sentido registrado.
+## Evidencia histórica y límites
 
-`route-preview.png` muestra esa misma cartografía y recorrido. Se generó con `scripts/render_route_preview.py` y se inspeccionó como figura de geometría. **No es una captura del navegador ni prueba de los controles reales.**
+Se conservan `resultados.json` (43 casos del sistema anterior) y `resultados-mapas.json` (81 de la revisión vial anterior). La geometría permanece en `example-route.json`: 2.34 km y 143 puntos entre Centro y Recoleta. `route-preview.png` es una figura de esa cartografía, no una captura del navegador.
 
-## Correcciones verificadas
+El navegador de herramientas rechazó `file://`; no se abrió un servidor ni se eludió esa política. **La revisión visual real permanece pendiente**: CSS, canvas, arrastre/rueda/pellizco, popups, ampliación, tamaños de pantalla, foco y almacenamiento del archivo abierto con doble clic.
 
-El mapa anterior podía mostrar imágenes de acceso bloqueado en file://. Su primer respaldo era un dibujo de calles arbitrarias, fijo y con una ruta ortogonal de cuatro puntos. Esa implementación fue reemplazada por cartografía OSM local, un grafo vial y Leaflet local; el respaldo también utiliza geometría real y permite pan/zoom.
+## Recorrido manual por roles
 
-Seleccionar el destino ahora mueve el pin sin reconstruir el mapa. El avance del tracking mueve el repartidor sin desplazar la vista, salvo al activar Seguir. Arrastrar desactiva ese seguimiento. Las actualizaciones conservan centro, zoom y ampliación; durante un gesto activo el shell aplaza el render. Los recorridos guardados del esquema antiguo se recalculan desde la última posición al recargar.
+1. Recarga con Ctrl+R. Cliente: crea un pedido y verifica que carrito, ubicación, pago y comprobante correspondan al pedido propio.
+2. Restaurante: selecciona esa cocina; acepta, inicia preparación y marca listo. Prueba menú/precio/agotado/apertura y Seguimiento y etapas. Cambiar de establecimiento debe ocultar el seguimiento anterior.
+3. Repartidor: selecciona Nueva oferta, acepta e inicia ruta al restaurante. El mapa debe seguirlo; arrastrar libera la cámara y Seguir repartidor vuelve a centrarla. Prueba ritmos y pausa.
+4. Recoge al llegar e inicia ruta al cliente. Cliente y Operaciones deben observar la misma posición y estado. Confirma entrega al llegar.
+5. Operaciones: amplía el mapa, usa Territorio/Panel, pasa el cursor por pins/rutas y selecciona Seguir entrega. Comprueba libres/ocupados, destinos y trazas. Sin pedidos, el panel debe explicar cómo iniciar, sin inventar rutas.
+6. Mensajes: contacta al repartidor desde su pin; cambia a su identidad, lee/responde y verifica la bandeja de operaciones. Otro repartidor no debe ver esos mensajes.
+7. Pagos: revisa aprobados/rechazados/reembolsados y referencias. No deben aparecer direcciones ni controles de cocina o reparto.
+8. Middleware: Generar ráfaga; deben registrarse 60 permitidas y 5 bloqueadas. Después prueba una alta y Reset. Prueba fallo/restauración, NACK/retry/DLQ y reprocesamiento.
+9. Arquitectura: selecciona los componentes y contrasta responsabilidades, actores y contratos con el proceso anterior.
 
-El registro anterior de 43 casos en `resultados.json` se conserva como evidencia histórica. El archivo actual de pruebas de mapas comprueba 16 casos de la implementación vectorial; reemplaza las nueve pruebas del esquema estático.
-
-## Verificación visual pendiente
-
-El navegador de herramientas rechazó acceder a la página `file://`: permite solamente HTTP/HTTPS. No se abrió un servidor ni se eludió esa restricción. Las pruebas del gestor utilizan una API Leaflet y DOM instrumentados; **no equivalen a ejecutar DOM, CSS, canvas o controles en un navegador real**.
-
-Pendiente: interacción visual del archivo abierto con doble clic, arrastre/rueda/pellizco reales, selección de destino, ampliación y foco, apariencia en escritorio/tablet/móvil, consola, geolocalización y almacenamiento del navegador bajo file://. La validación automática y la figura de geometría no se presentan como pruebas visuales de la página actualizada.
-
-## Cómo comprobarlo en la aplicación
-
-1. Recarga `index.html` con Ctrl+R. En Inicio, arrastra el mapa, usa rueda/+ y pulsa Ampliar y Ver todo. Deben aparecer calles, parques y río, sin imágenes de acceso bloqueado.
-2. En Cliente, abre Ubicación: selecciona un punto y arrastra el pin. Deben actualizarse coordenadas conservando la vista. Un punto fuera de cobertura debe mostrar error al guardar.
-3. Crea un pedido, prepáralo en Restaurante y acepta la oferta en Repartidor. Inicia el tramo al restaurante y activa Seguir; arrastrar el mapa debe desactivarlo.
-4. Prueba 1×, 10× y 30× y pausa/reanuda. La distancia debe decrecer sobre la ruta azul y los accesos deben verse discontinuos.
-5. Recoge al llegar, inicia ruta al cliente y revisa el mismo pedido en Cliente. Recarga durante el recorrido: debe continuar desde el punto guardado. Confirma la entrega al llegar.
-
-La simulación no representa GPS externo, tráfico ni restricciones viales completas. Las fuentes y límites están documentados en `docs/mapas.md`.
+Fuentes, licencia, cobertura y restricciones viales en [docs/mapas.md](../docs/mapas.md). Todo el seguimiento y la comunicación son una demostración local; no representan GPS, tráfico ni mensajes enviados a dispositivos externos.

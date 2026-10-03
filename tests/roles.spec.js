@@ -1,0 +1,81 @@
+/* Regresiones de permisos, recuperación 429 y seguimiento automático.
+   Usa almacenamiento aislado; no automatiza un navegador real. */
+(function(L){
+  'use strict';
+  L.verifyRoles=async function(){
+    const DB=L.core.DatabaseService,G=L.core.ApiGateway,T=L.services.TrackingService,B=L.core.EventBroker,R=L.maps.Routes,results=[];
+    const check=(name,value)=>{if(!value)throw Error(name);results.push({name,status:'PASS'});};
+    const request=async(m,p,d,c)=>(await G.request(m,p,d || {},c || {actor:'admin'})).data;
+    const failure=async(fn,status)=>{try{await fn();return false;}catch(e){return e.status===status;}};
+    DB.reset();let blocked=0;
+    for(let i=0;i<65;i++)try{await request('GET','/api/restaurants');}catch(e){if(e.status===429){blocked++;checkOnce=e.retryAfterSeconds>0;}else throw e;}
+    check('Cuota regular conserva 60 permitidas y 5 bloqueadas con tiempo de espera',blocked===5 && checkOnce);
+    await request('POST','/api/admin/reset');
+    check('Reset recupera una sesión administrativa ya limitada y queda auditado',DB.state.requests.length===1 && DB.state.requests[0].endpoint==='/api/admin/reset' && DB.state.requests[0].actor==='admin');
+    check('Cliente no puede restablecer ni ejecutar ráfaga',await failure(()=>request('POST','/api/admin/reset',{}, {actor:'client',customerId:'c1'}),403) && await failure(()=>request('POST','/api/admin/burst',{}, {actor:'client',customerId:'c1'}),403));
+    const burst=await request('POST','/api/admin/burst');
+    check('Ráfaga produce exactamente 60 aprobadas y 5 respuestas 429',burst.sent===65 && burst.accepted===60 && burst.blocked===5);
+    check('Las respuestas 429 de prueba se distinguen en auditoría',DB.state.requests.filter(r=>r.status===429 && r.quotaGroup==='demo-burst').length===5);
+    const registration=await request('POST','/api/admin/drivers',{name:'QA aislada',vehicle:'Bicicleta'});
+    check('Una alta funciona inmediatamente después de la ráfaga',registration.id && DB.state.rateWindows['admin:admin'].length===2);
+    const repeated=await request('POST','/api/admin/burst');check('Repetir la prueba no acumula bloqueo administrativo',repeated.accepted===60 && repeated.blocked===5);
+    DB.state.rateWindows['admin:admin']=Array(60).fill(Date.now());DB.state.unavailable=['OrderService'];
+    await request('POST','/api/admin/scenario',{action:'restore',service:'OrderService'});
+    check('Restaurar servicio sigue disponible con cuota regular agotada',!DB.state.unavailable.includes('OrderService') && DB.state.requests.at(-1).quotaGroup==='recovery');
+    check('Recuperación no elimina el límite de las operaciones normales',await failure(()=>request('POST','/api/admin/drivers',{name:'QA',vehicle:'Moto'}),429));
+    await request('POST','/api/admin/reset');DB.state.products=L.seed().products;DB.state.restaurants=L.seed().restaurants;
+    const c={actor:'client',customerId:'c1'},r={actor:'restaurant',restaurantId:'r1'},d={actor:'driver',driverId:'d1'},p={actor:'payment-provider',providerId:'local-payment-provider'};
+    const o=await request('POST','/api/orders',{restaurantId:'r1',items:[{productId:'p1',quantity:1}],customerName:'Cliente QA',address:'Dirección QA',lat:-17.378,lng:-66.151,paymentMethod:'QR'},c);
+    B.stop();o.status='DRIVER_ASSIGNED';o.driverId='d1';DB.getDrivers()[0].orderId=o.id;
+    const foreign={...L.copy(o),id:'QA-AJENO',customerId:'c2',restaurantId:'r2',restaurantName:'Establecimiento ajeno QA',customerName:'Cliente ajeno QA',driverId:'d2'};DB.state.orders.push(foreign);
+    for(const [name,context] of [['Cliente',c],['Restaurante',r],['Repartidor',d]]){
+      const own=await request('GET','/api/orders',{},context);
+      check(name+' consulta únicamente pedidos propios',own.length===1 && own[0].id===o.id);
+      check(name+' no accede al tracking de otro pedido',await failure(()=>request('GET','/api/tracking/'+foreign.id,{},context),403));
+    }
+    check('Restaurante no modifica el menú de otro establecimiento',await failure(()=>request('PATCH','/api/products/p5',{price:12},r),403));
+    check('Repartidor no modifica disponibilidad ajena',await failure(()=>request('PATCH','/api/drivers/d2',{available:false},d),403));
+    check('Cliente no prepara un pedido ni controla su ruta',await failure(()=>request('PATCH','/api/orders/'+o.id+'/status',{status:'PREPARING'},c),403) && await failure(()=>request('POST','/api/tracking/'+o.id,{leg:'restaurant'},c),403));
+    const payments=await request('GET','/api/payments',{},p);
+    check('Proveedor ve metadatos de transacción sin dirección ni nombre',payments.length===1 && !('address' in payments[0]) && !('customerName' in payments[0]));
+    check('Proveedor incorrecto no consulta transacciones',await failure(()=>request('GET','/api/payments',{}, {actor:'payment-provider',providerId:'otro'}),403));
+    check('Proveedor no accede a pedidos ni a funciones administrativas',await failure(()=>request('GET','/api/orders',{},p),403) && await failure(()=>request('POST','/api/admin/reset',{},p),403));
+    check('Cliente no consulta el listado de pagos del proveedor',await failure(()=>request('GET','/api/payments',{},c),403));
+    const before=DB.state.payments.length;await request('POST','/api/payments',{orderId:o.id},p);
+    check('Repetir procesamiento devuelve la transacción sin duplicarla',DB.state.payments.length===before);
+    DB.state.payments.push({id:'QA-PAGO-AJENO',providerId:'otro',orderId:foreign.id,status:'APPROVED',amount:10});
+    check('Transacciones de otro proveedor quedan fuera de la vista local',(await request('GET','/api/payments',{},p)).length===1 && await failure(()=>request('GET','/api/payments/QA-PAGO-AJENO',{},p),404));
+    L.services.PaymentService.refund(o);L.services.PaymentService.refund(o);B.stop();
+    const refund=DB.getEvents().filter(e=>e.routingKey==='payment.refunded');
+    check('Reembolso publica un resultado correlacionado una sola vez',refund.length===1 && refund[0].correlationId===o.correlationId && refund[0].payload.status==='REFUNDED');
+    L.services.PaymentService.consume(refund[0]);check('Proveedor recibe la notificación de reembolso',DB.state.paymentReceipts.some(x=>x.paymentId===refund[0].payload.id && x.status==='payment.refunded'));
+    T.start(o.id,'restaurant');await new Promise(resolve=>setTimeout(resolve,50));T.pause(o.id);const t=o.tracking;
+    check('El avance publica posición simulada, secuencia, rumbo y hora',t.sequence>0 && Number.isFinite(t.heading) && DB.getEvents().some(e=>e.routingKey==='tracking.position.updated' && e.payload.source==='simulation' && e.payload.sequence>0 && e.payload.updatedAt));
+    check('El parámetro de seguimiento es explícito y siempre simulado',T.parameters.followDriver && T.parameters.source==='simulation' && t.source==='simulation' && !t.running);
+    const cfg=L.maps.MapManager.order(o);check('Nuevo tramo incluye seguimiento por defecto e identidad de sesión',cfg.followDriver && cfg.hasPosition && cfg.key.includes(t.sessionId));
+    t.progress=.42;t.position=R.at(t.points,.42);const trail=R.completed(t.points,.42);
+    check('El rastro conserva las curvas de la vía y termina en la posición actual',trail.length>2 && R.distance(trail.at(-1),t.position)<.000001 && Math.abs(R.length(trail)-R.length(t.points)*.42)<.000001);
+    check('El rastro vacío y el completo cubren sus extremos',R.completed(t.points,0).every(x=>R.distance(x,t.points[0])<.000001) && R.completed(t.points,1).length===t.points.length);
+    check('La telemetría distingue pausa, demora y llegada',T.signal(t)==='Recorrido pausado' && T.signal({...t,running:true,updatedAt:new Date(Date.now()-20000).toISOString()})==='Sin actualización reciente' && T.signal({...t,arrived:true})==='Llegada registrada');
+    check('Rumbo de movimiento se calcula en grados',Math.abs(R.bearing([0,0],[0,1])-90)<.000001);
+    o.status='PICKED_UP';t.arrived=true;t.progress=1;
+    const preview=L.maps.MapManager.order(o);
+    check('Después de recoger se muestra la nueva ruta y se espera su inicio',!preview.hasPosition && !preview.followDriver && preview.plan.points.at(-1)[0]===o.lat);
+    o.status='DELIVERED';check('Un pedido cerrado no reactiva seguimiento automático',!L.maps.MapManager.order(o).followDriver);
+    DB.reset();DB.state.products=L.seed().products;DB.state.restaurants=L.seed().restaurants;
+    const closed=await request('PATCH','/api/restaurants/r1',{open:false},r);check('Restaurante controla su propia apertura',closed.open===false);await request('PATCH','/api/restaurants/r1',{open:true},r);
+    const product=await request('POST','/api/products',{name:'Plato QA',price:15,category:'Platos'},r);check('Alta de producto queda vinculada al establecimiento',product.restaurantId==='r1' && (await request('GET','/api/restaurants/r1/menu',{},r)).some(x=>x.id===product.id));
+    check('Precio y disponibilidad inválidos se rechazan',await failure(()=>request('PATCH','/api/products/'+product.id,{price:0},r),422) && await failure(()=>request('PATCH','/api/products/'+product.id,{available:'false'},r),422));
+    check('Apertura inválida no altera el restaurante',await failure(()=>request('PATCH','/api/restaurants/r1',{open:'false'},r),422) && DB.getRestaurants()[0].open);
+    const ownDriver={actor:'driver',driverId:'d3'};await request('PATCH','/api/drivers/d3',{available:false},ownDriver);check('Repartidor puede desconectarse de sus ofertas',L.services.DriverService.get('d3').status==='OFFLINE');await request('PATCH','/api/drivers/d3',{available:true},ownDriver);
+    check('Disponibilidad inválida no cambia al repartidor',await failure(()=>request('PATCH','/api/drivers/d3',{available:'false'},ownDriver),422) && L.services.DriverService.get('d3').status==='AVAILABLE');
+    const z=DB.state.zones[0],added=await request('POST','/api/admin/restaurants',{name:'Cocina QA',address:'Dirección QA',zone:z.name});
+    check('Alta administrativa valida zona y ubicación asociada',added.lat===z.lat && added.lng===z.lng);
+    check('Altas incompletas devuelven error de campo',await failure(()=>request('POST','/api/admin/restaurants',{name:'',address:'QA',zone:z.name}),422) && await failure(()=>request('POST','/api/admin/drivers',{name:'QA',vehicle:''}),422));
+    check('Escenarios rechazan un servicio desconocido',await failure(()=>request('POST','/api/admin/scenario',{action:'offline',service:'Desconocido'}),422) && !DB.state.unavailable.includes('Desconocido'));
+    check('Incidente requiere una descripción',await failure(()=>request('POST','/api/admin/incident',{note:''}),422));
+    const incident=await request('POST','/api/admin/incident',{note:'Incidente QA aislado'});B.stop();check('Incidente registra un evento auditable',incident.routingKey==='system.probe' && incident.payload.incident==='Incidente QA aislado');
+    DB.reset();DB.state.products=L.seed().products;DB.state.restaurants=L.seed().restaurants;return results;
+  };
+  let checkOnce=false;
+})(window.LlajtaVoy);
